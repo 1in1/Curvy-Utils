@@ -71,18 +71,22 @@ curveContainsPoint _ Infinity = True
 curveContainsPoint (Curve a1 a3 a2 a4 a6) (Planar x y) = y^2 + a1*x*y + a3*y - x^3 - a2*x^2 - a4*x - a6 == 0
 
 -- Given a rational curve, produce an equivalent expression with integral coefficients
--- Currently multiplies up but does not attempt to simply
+-- Currently multiplies up but does not attempt to simply - not `minimal` as is!
 minimalIntegralForm :: Curve Rational -> Curve Rational
 minimalIntegralForm (Curve a1 a3 a2 a4 a6) = Curve a1' a3' a2' a4' a6' where
     [a1', a3', a2', a4', a6'] = 
         -- until stopCondition updateDownwards $
         until (all ((== 1) . denominator)) update [a1, a3, a2, a4, a6]
    
-    stopCondition = not . (any <$> dividesSufficiently <*> (foldl union [] . map primeFactors)) . map numerator
-
     update :: [Rational] -> [Rational]
     update [a1', a3', a2', a4', a6'] = [a1'*k, a3'*k^3, a2'*k^2, a4'*k^4, a6'*k^6] where
-        k = getSixthPowerOfPrimeDenominatorDivs [a1', a3', a2', a4', a6']
+        k = sixthPowerOfCommonPrimeDivs [a1', a3', a2', a4', a6']
+
+    -- Take the prime factors of the lcm of the denominators, and multiply the whole equation by their product ^6 
+    sixthPowerOfCommonPrimeDivs :: [Rational] -> Rational
+    sixthPowerOfCommonPrimeDivs = (^6) . toRational . product . primeFactors . foldl lcm 1 . filter (/= 0) . map denominator
+
+    stopCondition = not . (any <$> dividesSufficiently <*> (foldl union [] . map primeFactors)) . map numerator
 
     dividesSufficiently :: [Integer] -> Integer -> Bool
     dividesSufficiently [a1', a3', a2', a4', a6'] k =
@@ -102,8 +106,5 @@ minimalIntegralForm (Curve a1 a3 a2 a4 a6) = Curve a1' a3' a2' a4' a6' where
             filter (/= 0) $
             map numerator [a1', a3', a2', a4', a6']
 
-    -- Take the prime factors of the lcm of the denominators, and multiply the whole equation by their product ^6 
-    getSixthPowerOfPrimeDenominatorDivs :: [Rational] -> Rational
-    getSixthPowerOfPrimeDenominatorDivs = (^6) . toRational . product . primeFactors . foldl lcm 1 . filter (/= 0) . map denominator
 
 
