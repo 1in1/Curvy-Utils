@@ -144,6 +144,7 @@ instance KnownNat n => Num (PrimeFieldElem n) where
     signum = abs
 instance KnownNat n => Fractional (PrimeFieldElem n) where
     recip (PrimeFieldElem x) = PrimeFieldElem $ fromJust $ modInv x n where n = natVal (Proxy :: Proxy n)
+    fromRational = (*) <$> PrimeFieldElem . numerator <*> recip . PrimeFieldElem . denominator
 
 instance KnownNat n => Eq (PrimeFieldElem n) where
     PrimeFieldElem x == PrimeFieldElem y = mod (x - y) n == 0 where n = natVal (Proxy :: Proxy n)

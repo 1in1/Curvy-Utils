@@ -48,9 +48,9 @@ ellipticNMult curve n = foldl (ellipticAddition curve) Infinity . replicate n
 
 
 -- Requires char K /= 2 - cf Silverman p. 42
-weierstrassDiscriminant :: (Eq k, Fractional k) => Curve k -> k
-weierstrassDiscriminant (Curve a1 a3 a2 a4 a6) = d where -- | ((fromRational (2%1))::k) /= ((fromRational (0%1))::k) = d where
-    b2 = a1^2 + 4*a2 -- typo in Silverman?? It gives a1^2 + 4*a4
+weierstrassDiscriminant :: forall k . (Eq k, Num k, Fractional k) => Curve k -> k
+weierstrassDiscriminant (Curve a1 a3 a2 a4 a6) | (0 :: k) /= (2 :: k) = d where
+    b2 = a1^2 + 4*a2 -- typo in Silverman!! It gives a1^2 + 4*a4
     b4 = 2*a4 + a1*a3
     b6 = a3^2 + 4*a6
     b8 = (a1^2)*a6 + 4*a2*a6 - a1*a3*a4 + a2*(a3^2) - a4^2
@@ -102,12 +102,8 @@ minimalIntegralForm (Curve a1 a3 a2 a4 a6) = Curve a1' a3' a2' a4' a6' where
             filter (/= 0) $
             map numerator [a1', a3', a2', a4', a6']
 
-    -- Take the prime factors of the lcm of the denominators, and multiply the whole equation by thier product ^6 
+    -- Take the prime factors of the lcm of the denominators, and multiply the whole equation by their product ^6 
     getSixthPowerOfPrimeDenominatorDivs :: [Rational] -> Rational
     getSixthPowerOfPrimeDenominatorDivs = (^6) . toRational . product . primeFactors . foldl lcm 1 . filter (/= 0) . map denominator
-
-
-
-
 
 
