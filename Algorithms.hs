@@ -1,11 +1,15 @@
+import GHC.TypeLits
+import Data.Proxy
 import Data.List
 import Data.Ratio
 import Debug.Trace
 import Control.Applicative
 import Control.Exception
+import Control.Monad (join)
+import Control.Arrow ((***))
 
-import EllipticCurves
 import PreliminaryNumberTheory
+import EllipticCurves
 
 -- Given a curve and a finite _group_ of points on the curve, construct
 -- a curve isomorphic to the image under quotient by this finite group
@@ -46,7 +50,7 @@ lutzNagelRationalTorsion (Curve 0 0 a2 a4 a6)
         xValuesFromY y = map toRational $ rationalCubicRoots a2 a4 (a6 - y^2)
         rationalPlanarTorsion = 
             filter (isRationalTorsion (Curve 0 0 a2 a4 a6)) $
-            filter ((== 0) . ellipticEval (Curve 0 0 a2 a4 a6)) $
+            filter (curveContainsPoint (Curve 0 0 a2 a4 a6)) $
             concatMap ((map <$> flip Planar <*> xValuesFromY) . toRational) possibleYValues
 lutzNagelRationalTorsion _ = undefined
 
@@ -59,17 +63,20 @@ rational2Torsion (Curve 0 a3 a2 a4 a6) = Infinity:planarPoints where
     -- If we knew that we had integer coords, this would be significantly easier
     planarPoints = map (`Planar` y0) $ nub $ rationalCubicRoots a2 a4 (a6 - a3 - y0^2)
 
+-- Which points exist on E(F_p)?
+curvePointsOnFp :: forall p . KnownNat p => Curve (PrimeFieldElem p) -> [ProjectivePoint (PrimeFieldElem p)]
+curvePointsOnFp curve = Infinity:filter (curveContainsPoint curve) (Planar <$> lst <*> lst) where
+    p = natVal (Proxy :: Proxy p)
+    lst = map fromInteger [0..(p-1)]
 
-solutionsModP :: Curve Rational -> Int -> [(Int, Int)]
-solutionsModP curve p = 
-    [(x, y) | x <- [0..(p-1)],
-              y <- [0..(p-1)],
-              mod (fromIntegral $ numerator $ eval curve (toRational x) (toRational y)) p == 0,
-              mod (fromIntegral $ denominator $ eval curve (toRational x) (toRational y)) p /= 0]
+isSingular :: (Eq k, Num k) => Curve k -> ProjectivePoint k -> Bool
+isSingular curve = (== (0,0,0)) . formalDerivatives curve 
 
-
-
-
+formalDerivatives :: (Num k) => Curve k -> ProjectivePoint k -> (k, k, k)
+formalDerivatives (Curve a1 a3 a2 a4 a6) = ((,,) <$> dxF <*> dyF <*> dzF) . homogenizeCoords where
+    dxF (x, y, z) = a1*y*z - 3*x^2 - 2*a2*x*z - a4*z^2
+    dyF (x, y, z) = 2*y*z + a1*x*z + 2*a3*z^2
+    dzF (x, y, z) = y^2 + a1*x*y + 2*a3*y*z - a2*x^2 - 2*a4*x*z - 3*a6*z^2
 
 -- Assume working over a field of characteristic /= 2, 3
 -- Assume we have a cubic of the form s1u^3 + s2u^2v + s3uv^2 + s4v^3 + s5u^2 + s6uv + s7v^2 + s8u + s9v = 0

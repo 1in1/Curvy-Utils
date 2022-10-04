@@ -17,6 +17,10 @@ data Curve k = Curve { a1 :: k, a3 :: k, a2 :: k, a4 :: k, a6 :: k } deriving (S
 data ProjectivePoint k = Planar k k
                        | Infinity deriving (Show, Eq)
 
+-- Go between homogeneous coordinates and planar ones
+homogenizeCoords :: (Num k) => ProjectivePoint k -> (k, k, k)
+homogenizeCoords Infinity = (0, 1, 0)
+homogenizeCoords (Planar x y) = (x, y, 1)
 
 -- Define the group law on the curve
 -- Addition with respect to the group law
@@ -43,7 +47,6 @@ ellipticNMult :: (Eq k, Fractional k) => Curve k -> Int -> ProjectivePoint k -> 
 ellipticNMult curve n = foldl (ellipticAddition curve) Infinity . replicate n
 
 
-
 -- Requires char K /= 2 - cf Silverman p. 42
 weierstrassDiscriminant :: (Eq k, Fractional k) => Curve k -> k
 weierstrassDiscriminant (Curve a1 a3 a2 a4 a6) = d where -- | ((fromRational (2%1))::k) /= ((fromRational (0%1))::k) = d where
@@ -62,35 +65,13 @@ jInvariant (Curve a1 a3 a2 a4 a6) = j where
     j = (c4^3)/d
 
 
-
-
-
-eval :: (Fractional k) => Curve k -> k -> k -> k
-eval (Curve a1 a3 a2 a4 a6) x y = y^2 + a1*x*y + a3*y - x^3 - a2*x^2 - a4*x - a6
-
 -- Given a ProjectivePoint, is it on the given Curve?
--- Holds iff this value is 0
-ellipticEval :: (Fractional k) => Curve k -> ProjectivePoint k -> k
-ellipticEval _ Infinity = 0
-ellipticEval curve (Planar x y) = eval curve x y
+curveContainsPoint :: (Eq k, Num k) => Curve k -> ProjectivePoint k -> Bool
+curveContainsPoint _ Infinity = True
+curveContainsPoint (Curve a1 a3 a2 a4 a6) (Planar x y) = y^2 + a1*x*y + a3*y - x^3 - a2*x^2 - a4*x - a6 == 0
 
-
--- Ensure a point is on the curve
-data CurvePoint k = CurvePoint (Curve k) (ProjectivePoint k)
--- Smart constructor (check about forcing this method to be used)
-curvePoint :: (Eq k, Fractional k) => Curve k -> ProjectivePoint k -> CurvePoint k
-curvePoint curve p = assert (0 == ellipticEval curve p) $ CurvePoint curve p
-
--- -- Given p, reduce the (RATIONAL) curve to get a minimal disc
--- padicMinimalDiscriminant :: Curve Rational -> Integer -> Rational
--- padicMinimalDiscriminant curve p = d where
---     disc = weierstrassDiscriminant curve
---     d = until ((/= 0) . (`mod` p) . denominator) (*(p^12)) $ 
---         until ((/= 0) . (`mod` p) . numerator) (/(p^12)) disc
-
-
--- Reduce a rational curve to an integral one, with minimal coefficients
--- Dividing back down is taking a fucking long time :(
+-- Given a rational curve, produce an equivalent expression with integral coefficients
+-- Currently multiplies up but does not attempt to simply
 minimalIntegralForm :: Curve Rational -> Curve Rational
 minimalIntegralForm (Curve a1 a3 a2 a4 a6) = Curve a1' a3' a2' a4' a6' where
     [a1', a3', a2', a4', a6'] = 

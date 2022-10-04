@@ -1,5 +1,8 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 module PreliminaryNumberTheory where
 
+import GHC.TypeLits
+import Data.Proxy
 import Debug.Trace
 import Control.Exception
 import Data.List
@@ -8,6 +11,7 @@ import Data.Maybe
 import Data.Ratio
 import qualified Data.Map as Map
 
+-- Prime number sieve
 sieve xs = sieve' xs Map.empty where
     sieve' [] table = []
     sieve' (x:xs) table =
@@ -67,7 +71,8 @@ existsIntegerSolution a b c
         
         existsBruteForceSolution limit = any (isSquare . toRational . eval) $ filter (/= (0,0)) ((,) <$> [0..limit] <*> [0..limit]) 
 
-
+-- Find a square root for a rational, if this root is rational
+-- The positive root is returned
 ratSqRoot :: Rational -> Maybe Rational
 ratSqRoot n | forcedRoot^2 == n = Just forcedRoot
             | otherwise = Nothing where
@@ -75,6 +80,7 @@ ratSqRoot n | forcedRoot^2 == n = Just forcedRoot
     forcedSqDen = (floor . sqrt . fromIntegral . denominator) n
     forcedRoot = forcedSqNum % forcedSqDen
 
+-- Find a cube root for a rational, if this root is rational
 ratCubRoot :: Rational -> Maybe Rational
 ratCubRoot n | forcedRoot^3 == n = Just forcedRoot
              | (-forcedRoot)^3 == n = Just (-forcedRoot)
@@ -84,7 +90,7 @@ ratCubRoot n | forcedRoot^3 == n = Just forcedRoot
     forcedRoot = forcedCubNum % forcedCubDen
 
 
--- Find the _rational_ roots of the monic cubic x^3 + ax^2 + bx + c
+-- Find the rational roots of the monic quadratic x^2 + ax + b
 rationalQuadraticRoots :: Rational -> Rational -> [Rational]
 rationalQuadraticRoots a 0 = [0, -a]
 rationalQuadraticRoots a b = maybePairOfRoots sqRoot where
@@ -93,6 +99,7 @@ rationalQuadraticRoots a b = maybePairOfRoots sqRoot where
     maybePairOfRoots (Just sq) = map ((+(-a/2)) . (*(sq/2))) [1, -1]
     maybePairOfRoots Nothing = []
 
+-- Find the rational roots of the monic cubic x^3 + ax^2 + bx + c
 -- The first root can be found via RRT
 -- Drastic improvement likely possible by using a floating point algo and searching in that space
 rationalCubicRoots :: Rational -> Rational -> Rational -> [Rational]
@@ -110,4 +117,33 @@ rationalCubicRoots a b c = roots rationalRoots where
     roots (firstRoot:tail) = firstRoot:rationalQuadraticRoots (a + firstRoot) (b + (a + firstRoot)*firstRoot)
     roots [] = []
 
+-- Prime field elements
+modInv :: Integer -> Integer -> Maybe Integer
+modInv a m
+  | 1 == g = Just (mkPos i)
+  | otherwise = Nothing
+  where
+    (i, _, g) = gcdExt a m
+    mkPos x
+      | x < 0 = x + m
+      | otherwise = x
+gcdExt :: Integer -> Integer -> (Integer, Integer, Integer)
+gcdExt a 0 = (1, 0, a)
+gcdExt a b =
+  let (q, r) = a `quotRem` b
+      (s, t, g) = gcdExt b r
+  in (t, s - q * t, g)
+newtype PrimeFieldElem (n :: Nat) = PrimeFieldElem Integer deriving (Show)
+instance KnownNat n => Num (PrimeFieldElem n) where
+    PrimeFieldElem x + PrimeFieldElem y = PrimeFieldElem (mod (x + y) n) where n = natVal (Proxy :: Proxy n)
+    PrimeFieldElem x * PrimeFieldElem y = PrimeFieldElem (mod (x * y) n) where n = natVal (Proxy :: Proxy n)
+    negate (PrimeFieldElem x) = PrimeFieldElem (mod (-x) n) where n = natVal (Proxy :: Proxy n)
+    fromInteger x = PrimeFieldElem (mod x n) where n = natVal (Proxy :: Proxy n)
+    abs (PrimeFieldElem x) | mod x n == 0 = 0
+                           | otherwise = 1 where n = natVal (Proxy :: Proxy n)
+    signum = abs
+instance KnownNat n => Fractional (PrimeFieldElem n) where
+    recip (PrimeFieldElem x) = PrimeFieldElem $ fromJust $ modInv x n where n = natVal (Proxy :: Proxy n)
 
+instance KnownNat n => Eq (PrimeFieldElem n) where
+    PrimeFieldElem x == PrimeFieldElem y = mod (x - y) n == 0 where n = natVal (Proxy :: Proxy n)
