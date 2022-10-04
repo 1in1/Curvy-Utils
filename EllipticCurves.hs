@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables, KindSignatures, DataKinds #-}
 module EllipticCurves where
 
 import Control.Applicative

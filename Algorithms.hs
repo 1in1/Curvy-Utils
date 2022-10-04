@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables, KindSignatures, DataKinds #-}
 import GHC.TypeLits
 import Data.Proxy
 import Data.List
@@ -5,8 +6,6 @@ import Data.Ratio
 import Debug.Trace
 import Control.Applicative
 import Control.Exception
-import Control.Monad (join)
-import Control.Arrow ((***))
 
 import PreliminaryNumberTheory
 import EllipticCurves

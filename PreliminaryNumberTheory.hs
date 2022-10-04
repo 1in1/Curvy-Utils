@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ScopedTypeVariables, KindSignatures, DataKinds #-}
 module PreliminaryNumberTheory where
 
 import GHC.TypeLits

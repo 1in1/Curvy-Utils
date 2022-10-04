@@ -4,8 +4,5 @@ Some utility scripts I've knocked together while working through a course on ell
 
 I've tried to mention references where I've remembered. Might be mistakes, and I won't comment on efficiency. This was much more about helping me learn the content and get through long computations!
 
-Must be built with `-XScopedTypeVariables -XKindSignatures -XDataKinds`. E.g., if you want to play with it in a shell, try
+Must be built with `ScopedTypeVariables` `KindSignatures`, and `DataKinds`, so make sure your compiler supports these (`ghci` pragmas are added).
 
-```
-ghci Algorthims.hs -XScopedTypeVariables -XKindSignatures -XDataKinds
-```
