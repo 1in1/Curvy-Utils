@@ -117,23 +117,22 @@ rationalCubicRoots a b c = roots rationalRoots where
     roots (firstRoot:tail) = firstRoot:rationalQuadraticRoots (a + firstRoot) (b + (a + firstRoot)*firstRoot)
     roots [] = []
 
--- Prime field elements
-modInv :: Integer -> Integer -> Maybe Integer
-modInv a m
-  | 1 == g = Just (mkPos i)
-  | otherwise = Nothing
-  where
-    (i, _, g) = gcdExt a m
-    mkPos x
-      | x < 0 = x + m
-      | otherwise = x
+-- Extended Euclidean algorithm
 gcdExt :: Integer -> Integer -> (Integer, Integer, Integer)
 gcdExt a 0 = (1, 0, a)
-gcdExt a b =
-  let (q, r) = a `quotRem` b
-      (s, t, g) = gcdExt b r
-  in (t, s - q * t, g)
+gcdExt a b = (t, s - q*t, g) where
+    (q, r) = a `quotRem` b
+    (s, t, g) = gcdExt b r
+
+-- Modular inverses
+modInv :: Integer -> Integer -> Maybe Integer
+modInv m a | 1 == g = Just (i `mod` m)
+           | otherwise = Nothing where
+    (i, _, g) = gcdExt a m
+
+-- Prime-order finite fields
 newtype PrimeFieldElem (n :: Nat) = PrimeFieldElem Integer deriving (Show)
+
 instance KnownNat n => Num (PrimeFieldElem n) where
     PrimeFieldElem x + PrimeFieldElem y = PrimeFieldElem (mod (x + y) n) where n = natVal (Proxy :: Proxy n)
     PrimeFieldElem x * PrimeFieldElem y = PrimeFieldElem (mod (x * y) n) where n = natVal (Proxy :: Proxy n)
@@ -142,8 +141,9 @@ instance KnownNat n => Num (PrimeFieldElem n) where
     abs (PrimeFieldElem x) | mod x n == 0 = 0
                            | otherwise = 1 where n = natVal (Proxy :: Proxy n)
     signum = abs
+
 instance KnownNat n => Fractional (PrimeFieldElem n) where
-    recip (PrimeFieldElem x) = PrimeFieldElem $ fromJust $ modInv x n where n = natVal (Proxy :: Proxy n)
+    recip (PrimeFieldElem x) = PrimeFieldElem $ fromJust $ modInv n x where n = natVal (Proxy :: Proxy n)
     fromRational = (*) <$> PrimeFieldElem . numerator <*> recip . PrimeFieldElem . denominator
 
 instance KnownNat n => Eq (PrimeFieldElem n) where

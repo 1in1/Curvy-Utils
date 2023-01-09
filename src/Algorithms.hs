@@ -1,4 +1,7 @@
 {-# LANGUAGE ScopedTypeVariables, KindSignatures, DataKinds #-}
+
+module Algorithms where
+
 import GHC.TypeLits
 import Data.Proxy
 import Data.List
@@ -35,8 +38,7 @@ quotientCurve (Curve a1 a3 a2 a4 a6) f = quot where
 -- We then need to confirm that these points are torsion. By Mazur, it is sufficient to check up to 12P
 -- (we need not check 11 but we may as well compute it anyway)
 isRationalTorsion :: Curve Rational -> ProjectivePoint Rational -> Bool
-isRationalTorsion curve p = Infinity `elem` pThrough12P where
-    pThrough12P = scanl (ellipticAddition curve) p $ replicate 11 p
+isRationalTorsion curve = (Infinity `elem`) . scanl1 (ellipticAddition curve) . replicate 11
 
 -- Only defined for integer coefficients and a1 == a3 == 0
 lutzNagelRationalTorsion :: Curve Rational -> [ProjectivePoint Rational]

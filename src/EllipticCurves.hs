@@ -12,16 +12,18 @@ import PreliminaryNumberTheory
 -- Define the structure of an elliptic curve. Any such curve can be given in Weierstrass form
 
 -- Weierstrass form: y^2 + a1 xy + a3 y = x^3 + a2 x^2 + a4 x + a6
--- They are given here in the order a1 a3 a2 a4 a6
 data Curve k = Curve { a1 :: k, a3 :: k, a2 :: k, a4 :: k, a6 :: k } deriving (Show, Eq)
 -- In Weierstrass form, the only point not in the affine plane V(Z-1) is (0:1:0). We denote this Infinity here
-data ProjectivePoint k = Planar k k
-                       | Infinity deriving (Show, Eq)
+data ProjectivePoint k = Planar k k | Infinity deriving (Show, Eq)
 
 -- Go between homogeneous coordinates and planar ones
 homogenizeCoords :: (Num k) => ProjectivePoint k -> (k, k, k)
 homogenizeCoords Infinity = (0, 1, 0)
 homogenizeCoords (Planar x y) = (x, y, 1)
+
+dehomogenizeCoords :: (Eq k, Num k, Fractional k) => (k, k, k) -> ProjectivePoint k
+dehomogenizeCoords (0, 1, 0) = Infinity
+dehomogenizeCoords (x, y, z) = Planar (x/z) (y/z)
 
 -- Define the group law on the curve
 -- Addition with respect to the group law
@@ -45,8 +47,7 @@ ellipticInverse (Curve a1 a3 a2 a4 a6) (Planar x y) = Planar x (-y - a1*x - a3)
 
 -- Utility function; apply the addition function n times
 ellipticNMult :: (Eq k, Fractional k) => Curve k -> Int -> ProjectivePoint k -> ProjectivePoint k
-ellipticNMult curve n = foldl (ellipticAddition curve) Infinity . replicate n
-
+ellipticNMult curve n = foldl1 (ellipticAddition curve) . replicate n
 
 -- Requires char K /= 2 - cf Silverman p. 42
 weierstrassDiscriminant :: forall k . (Eq k, Num k, Fractional k) => Curve k -> k
@@ -65,47 +66,8 @@ jInvariant (Curve a1 a3 a2 a4 a6) = j where
     d = weierstrassDiscriminant (Curve a1 a3 a2 a4 a6)
     j = (c4^3)/d
 
-
 -- Given a ProjectivePoint, is it on the given Curve?
 curveContainsPoint :: (Eq k, Num k) => Curve k -> ProjectivePoint k -> Bool
 curveContainsPoint _ Infinity = True
 curveContainsPoint (Curve a1 a3 a2 a4 a6) (Planar x y) = y^2 + a1*x*y + a3*y - x^3 - a2*x^2 - a4*x - a6 == 0
-
--- Given a rational curve, produce an equivalent expression with integral coefficients
--- Currently multiplies up but does not attempt to simply - not `minimal` as is!
-minimalIntegralForm :: Curve Rational -> Curve Rational
-minimalIntegralForm (Curve a1 a3 a2 a4 a6) = Curve a1' a3' a2' a4' a6' where
-    [a1', a3', a2', a4', a6'] = 
-        -- until stopCondition updateDownwards $
-        until (all ((== 1) . denominator)) update [a1, a3, a2, a4, a6]
-   
-    update :: [Rational] -> [Rational]
-    update [a1', a3', a2', a4', a6'] = [a1'*k, a3'*k^3, a2'*k^2, a4'*k^4, a6'*k^6] where
-        k = sixthPowerOfCommonPrimeDivs [a1', a3', a2', a4', a6']
-
-    -- Take the prime factors of the lcm of the denominators, and multiply the whole equation by their product ^6 
-    sixthPowerOfCommonPrimeDivs :: [Rational] -> Rational
-    sixthPowerOfCommonPrimeDivs = (^6) . toRational . product . primeFactors . foldl lcm 1 . filter (/= 0) . map denominator
-
-    stopCondition = not . (any <$> dividesSufficiently <*> (foldl union [] . map primeFactors)) . map numerator
-
-    dividesSufficiently :: [Integer] -> Integer -> Bool
-    dividesSufficiently [a1', a3', a2', a4', a6'] k =
-        ((== 0) . mod a1') k &&
-        ((== 0) . mod a3' . (^3)) k &&
-        ((== 0) . mod a2' . (^2)) k &&
-        ((== 0) . mod a4' . (^4)) k &&
-        ((== 0) . mod a6' . (^6)) k
-        
-    updateDownwards :: [Rational] -> [Rational]
-    updateDownwards [a1', a3', a2', a4', a6'] = [a1'/k, a3'/(k^3), a2'/(k^2), a4'/(k^4), a6'/(k^6)] where
-        k = toRational $
-            product $
-            filter (dividesSufficiently (map numerator [a1', a3', a2', a4', a6'])) $
-            primeFactors $
-            foldl lcm 1 $
-            filter (/= 0) $
-            map numerator [a1', a3', a2', a4', a6']
-
-
 
