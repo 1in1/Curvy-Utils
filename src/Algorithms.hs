@@ -4,6 +4,7 @@ module Algorithms where
 
 import GHC.TypeLits
 import Data.Proxy
+import Data.Maybe
 import Data.List
 import Data.Ratio
 import Debug.Trace
@@ -165,7 +166,7 @@ nagellsAlgorithm (GeneralCubic s1 s2 s3 s4 s5 s6 s7 s8 s9) | ((0 :: k) /= (2 :: 
 -- (x,y) |-> b if (x,y) = (0,0),
 --           x otherwise
 -- This isogeny yields data about the rank of the elliptic curve E
-rankOfImageOfAlpha :: Curve Rational -> Integer
+rankOfImageOfAlpha :: Curve Rational -> Maybe Integer
 rankOfImageOfAlpha (Curve 0 0 a b 0) | all ((== 1) . denominator) [a, b] = r where
     -- Check that a, b are integer
     absB = (abs . numerator) b
@@ -181,22 +182,28 @@ rankOfImageOfAlpha (Curve 0 0 a b 0) | all ((== 1) . denominator) [a, b] = r whe
     -- Begin by throwing in the point from alpha((0,0))
     imagePointFromOrigin = head $ filter (not . isSquare . (/ b) . toRational) elementsToCheck
 
-    imageElements [] certainIn _ = certainIn 
+    imageElements :: 
+        [Integer] -> 
+        [Integer] -> 
+        [Integer] -> 
+        Maybe [Integer]
+    imageElements [] certainIn _ = Just certainIn 
     imageElements (x:xs) certainIn certainOut 
         | x `elem` certainIn = imageElements xs certainIn certainOut
         | x `elem` certainOut = imageElements xs certainIn certainOut
+        | isNothing xIsValid = Nothing
         | otherwise = imageElements xs (certainIn' xIsValid) (certainOut' xIsValid) where
             xIsValid = existsIntegerSolution x (numerator a) (round (b/ toRational x))
             certainIn' (Just valid) = if valid then nub (x:(certainIn ++ map (*x) certainIn)) else certainIn
             certainOut' (Just valid) = if valid then nub (certainOut ++ map (*x) certainOut) else nub (x:certainOut)
 
     imageElts = imageElements elementsToCheck [imagePointFromOrigin] []
-    r = (round . logBase 2 . fromIntegral . length) imageElts
+    r = fmap (round . logBase 2 . fromIntegral . length) imageElts
 
 -- Given a curve E : y^2 = x^3 + ax^2 + bx, we define a dual curve E' : y^2 = x^3 - 2ax^2 + (a^2 - 4b)x
 -- Considering the homs alpha_E, alpha_E', we may deduce the rank of the curve
-rationalRank :: Curve Rational -> Integer
-rationalRank (Curve 0 0 a b 0) | all ((== 1) . denominator) [a, b] = r1 + r2 - 2 where
+rationalRank :: Curve Rational -> Maybe Integer
+rationalRank (Curve 0 0 a b 0) | all ((== 1) . denominator) [a, b] = subtract 2 <$> liftA2 (+) r1 r2 where
     r1 = rankOfImageOfAlpha (Curve 0 0 a b 0)
     r2 = rankOfImageOfAlpha (Curve 0 0 (-2*a) (a^2 - 4*b) 0)
 

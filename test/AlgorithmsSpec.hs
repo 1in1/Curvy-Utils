@@ -55,28 +55,30 @@ spec = do
 
     describe "Algorithms.rankOfImageOfAlpha" $ do
         it "correctly computes the rank of alpha's image (a4=-1)" $ do
-            rankOfImageOfAlpha (Curve 0 0 0 (-1) 0) `shouldBe` 1
+            rankOfImageOfAlpha (Curve 0 0 0 (-1) 0) `shouldBe` Just 1
         it "correctly computes the rank of alpha's image (a4=4)" $ do
-            rankOfImageOfAlpha (Curve 0 0 0 4 0) `shouldBe` 1
+            rankOfImageOfAlpha (Curve 0 0 0 4 0) `shouldBe` Just 1
         it "correctly computes the rank of alpha's image (a4=-5)" $ do
-            rankOfImageOfAlpha (Curve 0 0 0 (-5) 0) `shouldBe` 2
+            rankOfImageOfAlpha (Curve 0 0 0 (-5) 0) `shouldBe` Just 2
         it "correctly computes the rank of alpha's image (a4=20)" $ do
-            rankOfImageOfAlpha (Curve 0 0 0 20 0) `shouldBe` 1
+            rankOfImageOfAlpha (Curve 0 0 0 20 0) `shouldBe` Just 1
 
     describe "Algorithms.rationalRank" $ do
         it "correctly deduces rank of a curve (a4=-1)" $ do
-            rationalRank (Curve 0 0 0 (-1) 0) `shouldBe` 0
+            rationalRank (Curve 0 0 0 (-1) 0) `shouldBe` Just 0
         it "correctly deduces rank of a curve (a4=-5)" $ do
-            rationalRank (Curve 0 0 0 (-5) 0) `shouldBe` 1
+            rationalRank (Curve 0 0 0 (-5) 0) `shouldBe` Just 1
         it "correctly deduces rank of a curve (a4=20)" $ do
-            rationalRank (Curve 0 0 0 20 0) `shouldBe` 1
+            rationalRank (Curve 0 0 0 20 0) `shouldBe` Just 1
         it "correctly deduces rank of a p-curve: p=73" $ do
-            rationalRank (Curve 0 0 0 73 0) `shouldBe` 2
+            rationalRank (Curve 0 0 0 73 0) `shouldBe` Just 2
         it "correctly deduces rank of a p-curve: p=89" $ do
-            rationalRank (Curve 0 0 0 89 0) `shouldBe` 2
-        -- Known currently failing - algorithm heuristics currently insufficient
+            rationalRank (Curve 0 0 0 89 0) `shouldBe` Just 2
+        -- Known that current algorithm heuristics currently insufficient
+        -- Solution should be 0
         it "correctly deduces rank of a p-curve: p=17" $ do
-            rationalRank (Curve 0 0 0 17 0) `shouldBe` 0
-        -- Known currently failing - algorithm heuristics currently insufficient
+            rationalRank (Curve 0 0 0 17 0) `shouldBe` Nothing
+        -- Known that current algorithm heuristics currently insufficient
+        -- Solution should be 0
         it "correctly deduces rank of a p-curve: p=41" $ do
-            rationalRank (Curve 0 0 0 41 0) `shouldBe` 0
+            rationalRank (Curve 0 0 0 41 0) `shouldBe` Nothing
