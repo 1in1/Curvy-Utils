@@ -30,6 +30,7 @@ ghc-options:
 
 library:
   source-dirs: src
+  default-extensions: ScopedTypeVariables, KindSignatures, DataKinds
 
 tests:
   curvy-utils-test:
@@ -41,4 +42,5 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - hspec
+    - QuickCheck
     - curvy-utils

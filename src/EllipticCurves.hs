@@ -58,8 +58,10 @@ weierstrassDiscriminant (Curve a1 a3 a2 a4 a6) | (0 :: k) /= (2 :: k) = d where
     b8 = (a1^2)*a6 + 4*a2*a6 - a1*a3*a4 + a2*(a3^2) - a4^2
     d = -(b2^2)*b8 - 8*(b4^3) - 27*(b6^2) + 9*b2*b4*b6
 
-jInvariant :: (Eq k, Fractional k) => Curve k -> k
-jInvariant (Curve a1 a3 a2 a4 a6) = j where
+jInvariant :: (Eq k, Fractional k) => Curve k -> Maybe k
+jInvariant (Curve a1 a3 a2 a4 a6)
+    | d == 0 = Nothing
+    | otherwise = Just j where
     b2 = a1^2 + 4*a2
     b4 = 2*a4 + a1*a3
     c4 = b2^2 - 24*b4

@@ -1,14 +1,19 @@
 module EllipticCurvesSpec where
 
 import Test.Hspec
+import Test.QuickCheck
 import Data.Ratio
 
 import EllipticCurves
 
 curve = Curve 0 0 0 (-43) 166 :: Curve Rational
 p = Planar 3 8 :: ProjectivePoint Rational
-simpleJ :: Rational -> Rational -> Rational
-simpleJ a b = ((2^8) * (3^3) * (a^3)) / (4 * (a^3) + 27 * (b^2))
+simpleDisc :: Rational -> Rational -> Rational
+simpleDisc a b = (-16) * (4 * (a^3) + 27 * (b^2))
+simpleJ :: Rational -> Rational -> Maybe Rational
+simpleJ a b 
+    | 0 == simpleDisc a b = Nothing 
+    | otherwise = Just $ ((2^8) * (3^3) * (a^3)) / (4 * (a^3) + 27 * (b^2))
 
 spec :: Spec
 spec = do
@@ -31,14 +36,14 @@ spec = do
             weierstrassDiscriminant (Curve 0 0 (-4) 0 16) `shouldBe` (-45056)
         it "correctly computes the discriminant of a singular curve" $ do
             weierstrassDiscriminant (Curve 0 0 1 0 0) `shouldBe` 0
-        it "correctly computes the discriminant of a curve of form y^2 = x^3 + ax + b" $ do
-            weierstrassDiscriminant (Curve 0 0 0 5 17) `shouldBe` -16*(4*(5^3) + 27*(17^2))
+        it "correctly computes the discriminant of a curve of form y^2 = x^3 + ax + b" $ property
+            (\ (a,b) -> weierstrassDiscriminant (Curve 0 0 0 a b) == simpleDisc a b)
 
     describe "EllipticCurves.jInvariant" $ do
         it "correctly computes the j invariant of a non-singular curve" $ do
-            jInvariant (Curve 0 0 (-4) 0 16) `shouldBe` ((-4096) % 11)
-        it "correctly computes the j invariant of a curve of form y^2 = x^3 + ax + b" $ do
-            jInvariant (Curve 0 0 0 5 17) `shouldBe` simpleJ 5 17
+            jInvariant (Curve 0 0 (-4) 0 16) `shouldBe` Just ((-4096) % 11)
+        it "correctly computes the j invariant of a curve of form y^2 = x^3 + ax + b" $ property
+            (\ (a,b) -> jInvariant (Curve 0 0 0 a b) == simpleJ a b)
 
     describe "EllipticCurves.curveContainsPoint" $ do
         it "identifies when a point is on the curve" $ do
