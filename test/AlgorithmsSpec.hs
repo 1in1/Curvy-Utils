@@ -53,18 +53,30 @@ spec = do
         it "converts a general cubic into weierstrass form" $ do
             nagellsAlgorithm generalCubic `shouldBe` (Curve 0 0 0 0 ((-432)*(2^2)*(3^4)) :: Curve Rational)
 
-    -- Known currently failing - algorithm heuristics currently insufficient
     describe "Algorithms.rankOfImageOfAlpha" $ do
-        it "correctly computes the rank of alpha's image" $ do
+        it "correctly computes the rank of alpha's image (a4=-1)" $ do
+            rankOfImageOfAlpha (Curve 0 0 0 (-1) 0) `shouldBe` 1
+        it "correctly computes the rank of alpha's image (a4=4)" $ do
+            rankOfImageOfAlpha (Curve 0 0 0 4 0) `shouldBe` 1
+        it "correctly computes the rank of alpha's image (a4=-5)" $ do
+            rankOfImageOfAlpha (Curve 0 0 0 (-5) 0) `shouldBe` 2
+        it "correctly computes the rank of alpha's image (a4=20)" $ do
             rankOfImageOfAlpha (Curve 0 0 0 20 0) `shouldBe` 1
-        it "correctly computes the rank of alpha's image" $ do
-            rankOfImageOfAlpha (Curve 0 0 0 1 0) `shouldBe` 0
-        it "correctly computes the rank of alpha's image" $ do
-            rankOfImageOfAlpha (Curve 0 0 0 (-5) 0) `shouldBe` 1
 
-    -- Known currently failing - algorithm heuristics currently insufficient
     describe "Algorithms.rationalRank" $ do
-        it "correctly deduces rank of a curve" $ do
-            rationalRank (Curve 0 0 0 1 0) `shouldBe` 0
-        it "correctly deduces rank of a curve" $ do
-            rationalRank (Curve 0 0 0 (-1) 0) `shouldBe` 2
+        it "correctly deduces rank of a curve (a4=-1)" $ do
+            rationalRank (Curve 0 0 0 (-1) 0) `shouldBe` 0
+        it "correctly deduces rank of a curve (a4=-5)" $ do
+            rationalRank (Curve 0 0 0 (-5) 0) `shouldBe` 1
+        it "correctly deduces rank of a curve (a4=20)" $ do
+            rationalRank (Curve 0 0 0 20 0) `shouldBe` 1
+        it "correctly deduces rank of a p-curve: p=73" $ do
+            rationalRank (Curve 0 0 0 73 0) `shouldBe` 2
+        it "correctly deduces rank of a p-curve: p=89" $ do
+            rationalRank (Curve 0 0 0 89 0) `shouldBe` 2
+        -- Known currently failing - algorithm heuristics currently insufficient
+        it "correctly deduces rank of a p-curve: p=17" $ do
+            rationalRank (Curve 0 0 0 17 0) `shouldBe` 0
+        -- Known currently failing - algorithm heuristics currently insufficient
+        it "correctly deduces rank of a p-curve: p=41" $ do
+            rationalRank (Curve 0 0 0 41 0) `shouldBe` 0

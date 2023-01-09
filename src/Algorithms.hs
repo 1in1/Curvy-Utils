@@ -179,7 +179,7 @@ rankOfImageOfAlpha (Curve 0 0 a b 0) | all ((== 1) . denominator) [a, b] = r whe
     elementsToCheck = map product $ subsets basisForContainingSpace
     
     -- Begin by throwing in the point from alpha((0,0))
-    imagePointFromOrigin = head $ filter (isSquare . (/ b) . toRational) elementsToCheck
+    imagePointFromOrigin = head $ filter (not . isSquare . (/ b) . toRational) elementsToCheck
 
     imageElements [] certainIn _ = certainIn 
     imageElements (x:xs) certainIn certainOut 
@@ -190,7 +190,8 @@ rankOfImageOfAlpha (Curve 0 0 a b 0) | all ((== 1) . denominator) [a, b] = r whe
             certainIn' (Just valid) = if valid then nub (x:(certainIn ++ map (*x) certainIn)) else certainIn
             certainOut' (Just valid) = if valid then nub (certainOut ++ map (*x) certainOut) else nub (x:certainOut)
 
-    r = (round . logBase 2 . fromIntegral . length) $ imageElements elementsToCheck [imagePointFromOrigin] []
+    imageElts = imageElements elementsToCheck [imagePointFromOrigin] []
+    r = (round . logBase 2 . fromIntegral . length) imageElts
 
 -- Given a curve E : y^2 = x^3 + ax^2 + bx, we define a dual curve E' : y^2 = x^3 - 2ax^2 + (a^2 - 4b)x
 -- Considering the homs alpha_E, alpha_E', we may deduce the rank of the curve
