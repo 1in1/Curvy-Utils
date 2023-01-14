@@ -3,8 +3,8 @@ module Algorithms.PrimeFieldCurves (
     , singularities
     ) where
 
-import GHC.TypeLits
 import Data.Proxy
+import GHC.TypeLits
 
 import PreliminaryNumberTheory
 import EllipticCurves
@@ -19,4 +19,3 @@ curvePointsOnFp curve = Infinity:filter (curveContainsPoint curve) (Planar <$> l
 -- Identify singular points on the curve
 singularities :: forall p . KnownNat p => Curve (PrimeFieldElem p) -> [ProjectivePoint (PrimeFieldElem p)]
 singularities = filter <$> isSingular <*> curvePointsOnFp
-

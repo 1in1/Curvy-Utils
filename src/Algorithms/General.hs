@@ -58,8 +58,10 @@ isSingular curve = (== (0,0,0)) . formalDerivatives curve
 data GeneralCubic k = GeneralCubic { s1 :: k, s2 :: k, s3 :: k, s4 :: k, s5 :: k, s6 :: k, s7 :: k, s8 :: k, s9 :: k } deriving (Show, Eq)
 
 nagellsAlgorithm :: forall k . (Enum k, Show k, Eq k, Fractional k) => GeneralCubic k -> Curve k
-nagellsAlgorithm (GeneralCubic s1 s2 s3 s4 s5 s6 s7 s8 0) | ((0 :: k) /= (2 :: k)) && ((0 :: k) /= (3 :: k)) = assert (s8 /= 0) $ nagellsAlgorithm $ GeneralCubic s4 s3 s2 s1 s7 s6 s5 0 s8
-nagellsAlgorithm (GeneralCubic s1 s2 s3 s4 s5 s6 s7 s8 s9) | ((0 :: k) /= (2 :: k)) && ((0 :: k) /= (3 :: k)) = curve where
+nagellsAlgorithm (GeneralCubic s1 s2 s3 s4 s5 s6 s7 s8 0) 
+    | ((0 :: k) /= (2 :: k)) && ((0 :: k) /= (3 :: k)) = assert (s8 /= 0) $ nagellsAlgorithm $ GeneralCubic s4 s3 s2 s1 s7 s6 s5 0 s8
+nagellsAlgorithm (GeneralCubic s1 s2 s3 s4 s5 s6 s7 s8 s9) 
+    | ((0 :: k) /= (2 :: k)) && ((0 :: k) /= (3 :: k)) = curve where
     f3 u v = s1*(u^3) + s2*(u^2)*v + s3*u*(v^2) + s4*(v^3)
     f2 u v = s5*(u^2) + s6*u*v + s7*(v^2)
     f1 u v = s8*u + s9*v

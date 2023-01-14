@@ -21,6 +21,7 @@ import Data.Ord
 import Data.Proxy
 import Data.Ratio
 import GHC.TypeLits
+import Math.NumberTheory.Primes
 import Math.NumberTheory.Roots
 import qualified Data.Map as Map
 
@@ -60,27 +61,35 @@ cubeRootRational = liftA2 (%) <$> exactCubeRoot . numerator <*> exactCubeRoot . 
 -- Find the rational roots of the monic quadratic x^2 + ax + b
 rationalQuadraticRoots :: Rational -> Rational -> [Rational]
 rationalQuadraticRoots a 0 = [0, -a]
-rationalQuadraticRoots a b = maybePairOfRoots sqRoot where
-    n = a^2 - 4*b
-    sqRoot = squareRootRational n
-    maybePairOfRoots (Just sq) = map ((+(-a/2)) . (*(sq/2))) [1, -1]
-    maybePairOfRoots Nothing = []
+rationalQuadraticRoots a b = maybePairOfRoots disc where
+    disc = squareRootRational $ a^2 - 4*b
+    maybePairOfRoots = maybe [] (flip map [1, -1] . ((subtract (a/2) .) . (*) . (/2)))
 
 -- Find the rational roots of the monic cubic x^3 + ax^2 + bx + c
 -- The first root can be found via RRT
 -- Drastic improvement likely possible by using a floating point algo and searching in that space
 rationalCubicRoots :: Rational -> Rational -> Rational -> [Rational]
+rationalCubicRoots a b 0 = 0:rationalQuadraticRoots a b
 rationalCubicRoots a b c = roots where
-    x3Term = foldl lcm 1 $ map denominator [a, b, c]
-    possibleDenominators = filter ((== 0) . mod x3Term) [1..x3Term]
-    absConstTerm = abs (x3Term * numerator c)
-    factorsOfConstTerm = filter ((== 0) . mod absConstTerm) [1..absConstTerm]
-    possibleNumerators = [0] ++ factorsOfConstTerm ++ map negate factorsOfConstTerm
+    x3Term = foldl lcm 1 $ map denominator [a, b, c] :: Integer
+    absConstTerm = abs (x3Term * numerator c) :: Integer
+
+    generateAllFactors :: [(Prime Integer, Word)] -> [Integer]
+    generateAllFactors [] = [1]
+    generateAllFactors ((p,n):xs) = (take (1 + fromEnum n) . iterate (* unPrime p)) =<< generateAllFactors xs
+
+    possibleDenominators = sortOn abs $ generateAllFactors $ factorise x3Term
+    factorsOfConstTerm = generateAllFactors $ factorise absConstTerm
+    -- If the root is 0, it will have been picked up by the casing above
+    possibleNumerators = sortOn abs $ factorsOfConstTerm ++ map negate factorsOfConstTerm
 
     lagrangianLimit = foldl max 1 $ map abs [a, b, c]
-    rationalRoot = find ((== 0) . (\x -> x^3 + a*x^2 + b*x + c)) $ 
-        filter ((<= lagrangianLimit) . abs) $
-        (%) <$> possibleNumerators <*> possibleDenominators
+    possibleFractionsWithinLimit = 
+        (\d -> takeWhile ((<= lagrangianLimit) . abs) $ map (% d) possibleNumerators) =<<
+        takeWhile ((<= lagrangianLimit) . abs . (1 %)) 
+        possibleDenominators
+
+    rationalRoot = find ((== 0) . (\x -> x^3 + a*x^2 + b*x + c)) possibleFractionsWithinLimit
     roots = maybe [] (\x -> x:rationalQuadraticRoots (a + x) (b + (a + x)*x)) rationalRoot
 
 -- Does there exist a solution in integers to w^2 = au^4 + bu^2 v^2 + cv^4,
@@ -108,17 +117,17 @@ existsIntegerSolution a b c
             -- There are certain scenarios where we can rule out pairs (u,v) _before_ we pass to the reduced polynomial
             -- In particular, if p|u, (resp. p|v), does this force p|v (resp. p|u)?
             -- This is the case in the following specific scenario
-            uFilterOut =
-                if ((== 0) . (`mod` p)) a && ((/= 0) . (`mod` (p^2))) a then [(u, 0) | u <- [1..(p-1)]] -- p|v => p|u
-                else []
-            vFilterOut =
-                if ((== 0) . (`mod` p)) c && ((/= 0) . (`mod` (p^2))) c then [(0, v) | v <- [1..(p-1)]] -- p|u => p|v
-                else []
+            uFilterOut 
+                | (a `mod` p) == 0 && (a `mod` (p^2)) /= 0 = [(u, 0) | u <- [1..(p-1)]] -- p|v => p|u
+                | otherwise = []
+            vFilterOut
+                | (c `mod` p) == 0 && (c `mod` (p^2)) /= 0 = [(0, v) | v <- [1..(p-1)]] -- p|u => p|v
+                | otherwise = []
             filterOut = (0,0):(uFilterOut ++ vFilterOut)
 
             solutionsModuloP = filter ((`elem` squaresModP) . (`mod` p) . eval) $ ((,) <$> [0..(p-1)] <*> [0..(p-1)]) \\ filterOut
 
-        existsBruteForceSolution limit = any (isSquareRational . toRational . eval) $ filter (/= (0,0)) ((,) <$> [0..limit] <*> [0..limit]) 
+        existsBruteForceSolution limit = any (isSquare . eval) $ tail ((,) <$> [0..limit] <*> [0..limit]) 
 
 -- Extended Euclidean algorithm
 gcdExt :: Integer -> Integer -> (Integer, Integer, Integer)

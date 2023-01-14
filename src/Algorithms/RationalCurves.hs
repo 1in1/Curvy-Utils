@@ -6,14 +6,13 @@ module Algorithms.RationalCurves (
     , rationalRank
     ) where
 
-import GHC.TypeLits
-import Data.Proxy
-import Data.Maybe
-import Data.List
-import Data.Ratio
-import Debug.Trace
 import Control.Applicative
 import Control.Exception
+import Data.List
+import Data.Maybe
+import Data.Proxy
+import Data.Ratio
+import GHC.TypeLits
 
 import PreliminaryNumberTheory
 import EllipticCurves
@@ -84,7 +83,7 @@ rankOfImageOfAlpha (Curve 0 0 a b 0) | all ((== 1) . denominator) [a, b] = r whe
             certainOut' (Just valid) = if valid then nub (certainOut ++ map (*x) certainOut) else nub (x:certainOut)
 
     imageElts = imageElements elementsToCheck [imagePointFromOrigin] []
-    r = fmap (round . logBase 2 . fromIntegral . length) imageElts
+    r = round . logBase 2 . fromIntegral . length <$> imageElts
 
 -- Given a curve E : y^2 = x^3 + ax^2 + bx, we define a dual curve E' : y^2 = x^3 - 2ax^2 + (a^2 - 4b)x
 -- Considering the homs alpha_E, alpha_E', we may deduce the rank of the curve
@@ -92,4 +91,3 @@ rationalRank :: Curve Rational -> Maybe Integer
 rationalRank (Curve 0 0 a b 0) | all ((== 1) . denominator) [a, b] = subtract 2 <$> liftA2 (+) r1 r2 where
     r1 = rankOfImageOfAlpha (Curve 0 0 a b 0)
     r2 = rankOfImageOfAlpha (Curve 0 0 (-2*a) (a^2 - 4*b) 0)
-
