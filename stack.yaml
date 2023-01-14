@@ -43,6 +43,8 @@ packages:
 extra-deps:
   - containers-0.6.5.1
   - hspec-2.10.8
+  - lens-5.2
+  - integer-roots-1.0.2.0
 
 # Override default flag values for local packages and extra-deps
 # flags: {}

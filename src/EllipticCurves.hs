@@ -1,11 +1,20 @@
-{-# LANGUAGE ScopedTypeVariables, KindSignatures, DataKinds #-}
-module EllipticCurves where
+module EllipticCurves (
+      Curve (..)
+    , ProjectivePoint (..)
+    , homogenizeCoords
+    , dehomogenizeCoords
+    , ellipticAddition
+    , ellipticInverse
+    , ellipticNMult
+    , weierstrassDiscriminant
+    , jInvariant
+    , curveContainsPoint
+    ) where
 
 import Control.Applicative
 import Control.Exception
 import Data.List
 import Data.Ratio
-import Debug.Trace
 
 import PreliminaryNumberTheory
 
@@ -58,8 +67,10 @@ weierstrassDiscriminant (Curve a1 a3 a2 a4 a6) | (0 :: k) /= (2 :: k) = d where
     b8 = (a1^2)*a6 + 4*a2*a6 - a1*a3*a4 + a2*(a3^2) - a4^2
     d = -(b2^2)*b8 - 8*(b4^3) - 27*(b6^2) + 9*b2*b4*b6
 
-jInvariant :: (Eq k, Fractional k) => Curve k -> Maybe k
+-- Requires char K /= 2
+jInvariant :: forall k . (Eq k, Fractional k) => Curve k -> Maybe k
 jInvariant (Curve a1 a3 a2 a4 a6)
+    | (0 :: k) == (2 :: k) = undefined
     | d == 0 = Nothing
     | otherwise = Just j where
     b2 = a1^2 + 4*a2
@@ -72,4 +83,3 @@ jInvariant (Curve a1 a3 a2 a4 a6)
 curveContainsPoint :: (Eq k, Num k) => Curve k -> ProjectivePoint k -> Bool
 curveContainsPoint _ Infinity = True
 curveContainsPoint (Curve a1 a3 a2 a4 a6) (Planar x y) = y^2 + a1*x*y + a3*y - x^3 - a2*x^2 - a4*x - a6 == 0
-

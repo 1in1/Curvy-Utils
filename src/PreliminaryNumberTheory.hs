@@ -1,17 +1,31 @@
-{-# LANGUAGE ScopedTypeVariables, KindSignatures, DataKinds #-}
-module PreliminaryNumberTheory where
+module PreliminaryNumberTheory (
+      primesUpTo
+    , primeFactors
+    , isSquareRational
+    , isSquareModN
+    , squareRootRational
+    , cubeRootRational
+    , rationalQuadraticRoots
+    , rationalCubicRoots
+    , existsIntegerSolution
+    , PrimeFieldElem (..)
+    ) where
 
-import GHC.TypeLits
-import Data.Proxy
-import Debug.Trace
+import Control.Applicative
 import Control.Exception
+import Data.Complex
 import Data.List
 import Data.Map (Map)
 import Data.Maybe
+import Data.Ord
+import Data.Proxy
 import Data.Ratio
+import GHC.TypeLits
+import Math.NumberTheory.Roots
 import qualified Data.Map as Map
 
 -- Prime number sieve
+sieve :: (Ord a, Num a) => [a] -> [a]
 sieve xs = sieve' xs Map.empty where
     sieve' [] table = []
     sieve' (x:xs) table =
@@ -28,11 +42,46 @@ primeFactors n | n == 0 = []
                | n < 0 = primeFactors (-n)
                | otherwise = filter ((== 0) . mod n) $ primesUpTo n
 
-isSquare :: Rational -> Bool
-isSquare = isJust . ratSqRoot
+isSquareRational :: Rational -> Bool
+isSquareRational = (&&) <$> isSquare . numerator <*> isSquare . denominator
 
 isSquareModN :: Integer -> Integer -> Bool
 isSquareModN p x = mod x p `elem` [(x^2) `mod` p | x <- [0..(p-1)]]
+
+-- Find a square root for a rational, if this root is rational
+-- The positive root is returned
+squareRootRational :: Rational -> Maybe Rational
+squareRootRational = liftA2 (%) <$> exactSquareRoot . numerator <*> exactSquareRoot . denominator
+
+-- Find a cube root for a rational, if this root is rational
+cubeRootRational :: Rational -> Maybe Rational
+cubeRootRational = liftA2 (%) <$> exactCubeRoot . numerator <*> exactCubeRoot . denominator
+
+-- Find the rational roots of the monic quadratic x^2 + ax + b
+rationalQuadraticRoots :: Rational -> Rational -> [Rational]
+rationalQuadraticRoots a 0 = [0, -a]
+rationalQuadraticRoots a b = maybePairOfRoots sqRoot where
+    n = a^2 - 4*b
+    sqRoot = squareRootRational n
+    maybePairOfRoots (Just sq) = map ((+(-a/2)) . (*(sq/2))) [1, -1]
+    maybePairOfRoots Nothing = []
+
+-- Find the rational roots of the monic cubic x^3 + ax^2 + bx + c
+-- The first root can be found via RRT
+-- Drastic improvement likely possible by using a floating point algo and searching in that space
+rationalCubicRoots :: Rational -> Rational -> Rational -> [Rational]
+rationalCubicRoots a b c = roots where
+    x3Term = foldl lcm 1 $ map denominator [a, b, c]
+    possibleDenominators = filter ((== 0) . mod x3Term) [1..x3Term]
+    absConstTerm = abs (x3Term * numerator c)
+    factorsOfConstTerm = filter ((== 0) . mod absConstTerm) [1..absConstTerm]
+    possibleNumerators = [0] ++ factorsOfConstTerm ++ map negate factorsOfConstTerm
+
+    lagrangianLimit = foldl max 1 $ map abs [a, b, c]
+    rationalRoot = find ((== 0) . (\x -> x^3 + a*x^2 + b*x + c)) $ 
+        filter ((<= lagrangianLimit) . abs) $
+        (%) <$> possibleNumerators <*> possibleDenominators
+    roots = maybe [] (\x -> x:rationalQuadraticRoots (a + x) (b + (a + x)*x)) rationalRoot
 
 -- Does there exist a solution in integers to w^2 = au^4 + bu^2 v^2 + cv^4,
 -- such that not all of w, u, v are 0?
@@ -51,7 +100,8 @@ existsIntegerSolution a b c
             all (<0) [a, -(4*a*c - (b^2))] ||
             all (<0) [c, -(4*c*a - (b^2))]
 
-        -- Assume that u, v \in Z are coprime (else pull thier gcd into w), and consider the reduced equation at p. We may be able to establish a contradiction
+        -- Assume that u, v \in Z are coprime (else pull thier gcd into w), and consider the reduced equation at p -
+        -- we may be able to establish a contradiction
         -- We can definitely make this work better...
         contradictionByConsiderationModP p = null solutionsModuloP where
             squaresModP = (nub . map ((`mod` p) . (^2))) [0..(p-1)]
@@ -68,54 +118,7 @@ existsIntegerSolution a b c
 
             solutionsModuloP = filter ((`elem` squaresModP) . (`mod` p) . eval) $ ((,) <$> [0..(p-1)] <*> [0..(p-1)]) \\ filterOut
 
-        
-        existsBruteForceSolution limit = any (isSquare . toRational . eval) $ filter (/= (0,0)) ((,) <$> [0..limit] <*> [0..limit]) 
-
--- Find a square root for a rational, if this root is rational
--- The positive root is returned
-ratSqRoot :: Rational -> Maybe Rational
-ratSqRoot n | forcedRoot^2 == n = Just forcedRoot
-            | otherwise = Nothing where
-    forcedSqNum = (floor . sqrt . fromIntegral . abs . numerator) n
-    forcedSqDen = (floor . sqrt . fromIntegral . denominator) n
-    forcedRoot = forcedSqNum % forcedSqDen
-
--- Find a cube root for a rational, if this root is rational
-ratCubRoot :: Rational -> Maybe Rational
-ratCubRoot n | forcedRoot^3 == n = Just forcedRoot
-             | (-forcedRoot)^3 == n = Just (-forcedRoot)
-             | otherwise = Nothing where
-    forcedCubNum = (floor . (**(1/3)) . fromIntegral . numerator . abs) n
-    forcedCubDen = (floor . (**(1/3)) . fromIntegral . denominator) n
-    forcedRoot = forcedCubNum % forcedCubDen
-
-
--- Find the rational roots of the monic quadratic x^2 + ax + b
-rationalQuadraticRoots :: Rational -> Rational -> [Rational]
-rationalQuadraticRoots a 0 = [0, -a]
-rationalQuadraticRoots a b = maybePairOfRoots sqRoot where
-    n = a^2 - 4*b
-    sqRoot = ratSqRoot n
-    maybePairOfRoots (Just sq) = map ((+(-a/2)) . (*(sq/2))) [1, -1]
-    maybePairOfRoots Nothing = []
-
--- Find the rational roots of the monic cubic x^3 + ax^2 + bx + c
--- The first root can be found via RRT
--- Drastic improvement likely possible by using a floating point algo and searching in that space
-rationalCubicRoots :: Rational -> Rational -> Rational -> [Rational]
-rationalCubicRoots a b c = roots rationalRoots where
-    x3Term = foldl lcm 1 $ map denominator [a, b, c]
-    possibleDenominators = filter ((== 0) . mod x3Term) [1..x3Term]
-    absConstTerm = abs (x3Term * numerator c)
-    factorsOfConstTerm = filter ((== 0) . mod absConstTerm) [1..absConstTerm]
-    possibleNumerators = [0] ++ factorsOfConstTerm ++ map negate factorsOfConstTerm
-
-    lagrangianLimit = foldl max 1 $ map abs [a, b, c]
-    rationalRoots = filter ((== 0) . (\x -> x^3 + a*x^2 + b*x + c)) $ 
-        filter ((<= lagrangianLimit) . abs) $
-        (%) <$> possibleNumerators <*> possibleDenominators
-    roots (firstRoot:tail) = firstRoot:rationalQuadraticRoots (a + firstRoot) (b + (a + firstRoot)*firstRoot)
-    roots [] = []
+        existsBruteForceSolution limit = any (isSquareRational . toRational . eval) $ filter (/= (0,0)) ((,) <$> [0..limit] <*> [0..limit]) 
 
 -- Extended Euclidean algorithm
 gcdExt :: Integer -> Integer -> (Integer, Integer, Integer)

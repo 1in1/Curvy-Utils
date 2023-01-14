@@ -16,6 +16,7 @@ description:         Please see the README on GitHub at <https://github.com/gith
 dependencies:
 - base >= 4.7 && < 5
 - containers
+- integer-roots
 
 ghc-options:
 - -Wall
@@ -44,3 +45,5 @@ tests:
     - hspec
     - QuickCheck
     - curvy-utils
+    - lens
+    default-extensions: ScopedTypeVariables, KindSignatures, DataKinds
