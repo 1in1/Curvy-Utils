@@ -90,7 +90,7 @@ spec = do
         it "returns roots of cubic with one distinct roots" $ do
             rationalCubicRoots ((-5) % 1) (25 % 3) ((-125) % 27) `shouldMatchList` [5 % 3, 5 % 3, 5 % 3]
         it "returns roots of monic cubic with three rational roots" $
-            forAll (genRationalTriple 1000) $
+            forAll (genRationalTriple 10000) $
             (==) <$> 
             Set.fromList . uncurry3 rationalCubicRoots . uncurry3 cubicFromRoots <*> 
             Set.fromList . (^..each)

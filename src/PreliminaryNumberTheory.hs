@@ -12,7 +12,10 @@ module PreliminaryNumberTheory (
     ) where
 
 import Control.Applicative
+import Control.Arrow
 import Control.Exception
+import Control.Lens
+import Control.Monad
 import Data.Complex
 import Data.List
 import Data.Map (Map)
@@ -67,25 +70,33 @@ rationalQuadraticRoots a b = maybePairOfRoots disc where
 
 -- Find the rational roots of the monic cubic x^3 + ax^2 + bx + c
 -- The first root can be found via RRT
--- Drastic improvement likely possible by using a floating point algo and searching in that space
 rationalCubicRoots :: Rational -> Rational -> Rational -> [Rational]
 rationalCubicRoots a b 0 = 0:rationalQuadraticRoots a b
 rationalCubicRoots a b c = roots where
-    x3Term = foldl lcm 1 $ map denominator [a, b, c] :: Integer
-    absConstTerm = abs (x3Term * numerator c) :: Integer
+    x3TermFactors :: Map (Prime Integer) Word
+    x3TermFactors = foldl1 (Map.unionWith max) $
+        map (Map.fromList . factorise . denominator) [a, b, c] 
+    absConstTermFactors :: Map (Prime Integer) Word
+    absConstTermFactors = Map.unionWith (+) x3TermFactors $
+        Map.fromList $
+        factorise $ 
+        numerator c
 
     generateAllFactors :: [(Prime Integer, Word)] -> [Integer]
     generateAllFactors [] = [1]
-    generateAllFactors ((p,n):xs) = (take (1 + fromEnum n) . iterate (* unPrime p)) =<< generateAllFactors xs
+    generateAllFactors ((p,n):xs) = (take (1 + fromEnum n) . iterate (* unPrime p)) 
+        =<< generateAllFactors xs
 
-    possibleDenominators = sortOn abs $ generateAllFactors $ factorise x3Term
-    factorsOfConstTerm = generateAllFactors $ factorise absConstTerm
+    possibleDenominators = sortOn abs $ generateAllFactors $ Map.toList x3TermFactors
+    factorsOfConstTerm = sortOn abs $ generateAllFactors $ Map.toList absConstTermFactors
     -- If the root is 0, it will have been picked up by the casing above
-    possibleNumerators = sortOn abs $ factorsOfConstTerm ++ map negate factorsOfConstTerm
+    possibleNumerators = join $ map ((^..each) . (id &&& negate)) factorsOfConstTerm
 
     lagrangianLimit = foldl max 1 $ map abs [a, b, c]
     possibleFractionsWithinLimit = 
-        (\d -> takeWhile ((<= lagrangianLimit) . abs) $ map (% d) possibleNumerators) =<<
+        (\d -> takeWhile ((<= lagrangianLimit) . abs) $ 
+            map (% d) possibleNumerators
+            ) =<<
         takeWhile ((<= lagrangianLimit) . abs . (1 %)) 
         possibleDenominators
 

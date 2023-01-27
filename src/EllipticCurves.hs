@@ -58,26 +58,23 @@ ellipticInverse (Curve a1 a3 a2 a4 a6) (Planar x y) = Planar x (-y - a1*x - a3)
 ellipticNMult :: (Eq k, Fractional k) => Curve k -> Int -> ProjectivePoint k -> ProjectivePoint k
 ellipticNMult curve n = foldl1 (ellipticAddition curve) . replicate n
 
--- Requires char K /= 2 - cf Silverman p. 42
-weierstrassDiscriminant :: forall k . (Eq k, Num k, Fractional k) => Curve k -> k
-weierstrassDiscriminant (Curve a1 a3 a2 a4 a6) | (0 :: k) /= (2 :: k) = d where
-    b2 = a1^2 + 4*a2 -- typo in Silverman!! It gives a1^2 + 4*a4
+discriminantAndJInvariant :: (Eq k, Num k, Fractional k) => Curve k -> (k, Maybe k)
+discriminantAndJInvariant (Curve a1 a3 a2 a4 a6) = (disc, j) where
+    b2 = a1^2 + 4*a2
     b4 = 2*a4 + a1*a3
     b6 = a3^2 + 4*a6
     b8 = (a1^2)*a6 + 4*a2*a6 - a1*a3*a4 + a2*(a3^2) - a4^2
-    d = -(b2^2)*b8 - 8*(b4^3) - 27*(b6^2) + 9*b2*b4*b6
-
--- Requires char K /= 2
-jInvariant :: forall k . (Eq k, Fractional k) => Curve k -> Maybe k
-jInvariant (Curve a1 a3 a2 a4 a6)
-    | (0 :: k) == (2 :: k) = undefined
-    | d == 0 = Nothing
-    | otherwise = Just j where
-    b2 = a1^2 + 4*a2
-    b4 = 2*a4 + a1*a3
     c4 = b2^2 - 24*b4
-    d = weierstrassDiscriminant (Curve a1 a3 a2 a4 a6)
-    j = (c4^3)/d
+    c6 = -b2^3 + 36*b2*b4 - 216*b6
+    disc = -(b2^2)*b8 - 8*b4^3 - 27*b6^2 + 9*b2*b4*b6
+    j | disc == 0 = Nothing
+      | otherwise = Just $ (c4^3)/disc
+
+weierstrassDiscriminant :: (Eq k, Num k, Fractional k) => Curve k -> k
+weierstrassDiscriminant = fst . discriminantAndJInvariant
+
+jInvariant :: (Eq k, Num k, Fractional k) => Curve k -> Maybe k
+jInvariant = snd . discriminantAndJInvariant
 
 -- Given a ProjectivePoint, is it on the given Curve?
 curveContainsPoint :: (Eq k, Num k) => Curve k -> ProjectivePoint k -> Bool
