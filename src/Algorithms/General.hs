@@ -1,5 +1,7 @@
 module Algorithms.General (
-      quotientCurve
+      isomorphismBetween
+    , substitute
+    , quotientCurve
     , formalDerivatives
     , isSingular
     , GeneralCubic (..)
@@ -8,14 +10,67 @@ module Algorithms.General (
 
 import Control.Applicative
 import Control.Exception
+import Control.Monad
 import Data.List
 import Data.Maybe
 import Data.Proxy
 import Data.Ratio
+import Data.Tuple
 import GHC.TypeLits
 
 import PreliminaryNumberTheory
 import EllipticCurves
+
+-- Are two curves isomorphic to one another over k?
+-- If so, deduce a  substitution of the form
+-- x = u^2 x' + r,
+-- y = u^3 y' + u^2 s x' + t,
+-- with u, r, s, t \in k and u /= 0
+-- and return the transformation used
+--
+-- For now, let's only worry about rational curves
+isomorphismBetween :: Curve Rational -> 
+                      Curve Rational -> 
+                      Maybe (Rational, Rational, Rational, Rational)
+isomorphismBetween (Curve a1 a3 a2 a4 a6) (Curve a1' a3' a2' a4' a6') = iso where
+    b2 = a1^2 + 4*a2;  b2' = a1'^2 + 4*a2'
+    b4 = 2*a4 + a1*a3; b4' = 2*a4' + a1'*a3'
+    c4 = b2^2 - 24*b4; c4' = b2'^2 - 24*b4'
+    ratio | (c4 == 0) || (c4' == 0) = Nothing
+          | otherwise = Just (c4 / c4')
+
+    -- There are potentially two options for u from this; the positive and negative square root
+    -- We work out both, and check if they give the correct substitution
+
+    -- We have u^4 c4' = c4. So if we can take square roots;
+    uVals :: Maybe [Rational]
+    uVals = fmap (\z -> [z, -z]) . squareRootRational =<< squareRootRational =<< ratio
+    -- We have ua1' = a1 + 2s. So if we can divide by 2;
+    sVals :: Maybe [Rational]
+    sVals = map (\justU -> (justU*a1' - a1)/2) <$> uVals
+    -- We have u^2 a2' = a2 - s a1 + 3r - s^2. So if we can divide by 3;
+    rVals :: Maybe [Rational]
+    rVals = liftM2 ((map (\(justU, justS) -> ((justU^2)*a2' - a2 + justS^2 + justS*a1)/3) .) . zip) uVals sVals
+    -- We have u^3 a3' = a3 + r a1 + 2t. So if we can divide by 2;
+    tVals :: Maybe [Rational]
+    tVals = liftM2 ((map (\(justU, justR) -> ((justU^3)*a3' - a3 - justR*a1)/2) .) . zip) uVals rVals
+
+    possibleMappings :: Maybe [(Rational, Rational, Rational, Rational)]
+    possibleMappings = liftM4 zip4 uVals rVals sVals tVals
+
+    iso = find (\(u, r, s, t) -> substitute (Curve a1 a3 a2 a4 a6) u r s t == Curve a1' a3' a2' a4' a6') 
+        =<< possibleMappings
+
+-- Substitute x = u^2 x + r, y = u^3 y' + u^2 s x' + t
+substitute :: (Eq k, Fractional k) => Curve k -> k -> k -> k -> k -> Curve k
+substitute (Curve a1 a3 a2 a4 a6) u r s t
+    | u == 0 = undefined
+    | otherwise = Curve a1' a3' a2' a4' a6' where
+    a1' = (a1 + 2*s)/u
+    a2' = (a2 - s*a1 + 3*r - s^2)/u^2
+    a3' = (a3 + r*a1 + 2*t)/u^3
+    a4' = (a4 - s*a3 + 2*r*a2 - (r*s + t)*a1 + 3*r^2 - 2*s*t)/u^4
+    a6' = (a6 + r*a4 + r^2 * a2 + r^3 - t*a3 - t^2 - r*t*a1)/u^6
 
 -- Given a curve and a finite _group_ of points on the curve, construct
 -- a curve isomorphic to the image under quotient by this finite group
@@ -52,15 +107,30 @@ isSingular :: (Eq k, Num k) => Curve k -> ProjectivePoint k -> Bool
 isSingular curve = (== (0,0,0)) . formalDerivatives curve 
 
 -- Assume working over a field of characteristic /= 2, 3
--- Assume we have a cubic of the form s1u^3 + s2u^2v + s3uv^2 + s4v^3 + s5u^2 + s6uv + s7v^2 + s8u + s9v = 0
+-- Assume we have a cubic of the form s1u^3 + s2u^2v + s3uv^2 + s4v^3 + s5u^2 + s6uv + s7v^2 + s8u + s9v + c = 0,
+-- with a given rational point (u, v) = (p, q)
 --
 -- c.f. Elliptic Curve Handbook, Ian Connell
-data GeneralCubic k = GeneralCubic { s1 :: k, s2 :: k, s3 :: k, s4 :: k, s5 :: k, s6 :: k, s7 :: k, s8 :: k, s9 :: k } deriving (Show, Eq)
+data GeneralCubic k = GeneralCubic { 
+      s1 :: k
+    , s2 :: k
+    , s3 :: k
+    , s4 :: k
+    , s5 :: k
+    , s6 :: k
+    , s7 :: k
+    , s8 :: k
+    , s9 :: k
+    , c :: k
+    , rationalPoint :: (k, k)
+    } deriving (Show, Eq)
 
 nagellsAlgorithm :: forall k . (Enum k, Show k, Eq k, Fractional k) => GeneralCubic k -> Curve k
-nagellsAlgorithm (GeneralCubic s1 s2 s3 s4 s5 s6 s7 s8 0) 
-    | ((0 :: k) /= (2 :: k)) && ((0 :: k) /= (3 :: k)) = assert (s8 /= 0) $ nagellsAlgorithm $ GeneralCubic s4 s3 s2 s1 s7 s6 s5 0 s8
-nagellsAlgorithm (GeneralCubic s1 s2 s3 s4 s5 s6 s7 s8 s9) 
+nagellsAlgorithm (GeneralCubic s1 s2 s3 s4 s5 s6 s7 s8 0 0 p) 
+    | ((0 :: k) /= (2 :: k)) && ((0 :: k) /= (3 :: k)) = assert (s8 /= 0) $ 
+        nagellsAlgorithm $ 
+        GeneralCubic s4 s3 s2 s1 s7 s6 s5 0 s8 0 (swap p)
+nagellsAlgorithm (GeneralCubic s1 s2 s3 s4 s5 s6 s7 s8 s9 0 (0,0)) 
     | ((0 :: k) /= (2 :: k)) && ((0 :: k) /= (3 :: k)) = curve where
     f3 u v = s1*(u^3) + s2*(u^2)*v + s3*u*(v^2) + s4*(v^3)
     f2 u v = s5*(u^2) + s6*u*v + s7*(v^2)
@@ -125,3 +195,13 @@ nagellsAlgorithm (GeneralCubic s1 s2 s3 s4 s5 s6 s7 s8 s9)
     curve = assert (c /= 0) $ 
             assert ((e2 /= 0) || (e3 /= 0)) $
             Curve 0 0 d (c*e) ((c^2)*k) 
+-- If we're given a rational point not at (0,0), move it - this ensures the constant term is 0
+nagellsAlgorithm (GeneralCubic s1 s2 s3 s4 s5 s6 s7 s8 s9 c (p,q)) 
+    = nagellsAlgorithm $ GeneralCubic s1 s2 s3 s4 
+        (3*s1*p + s2*q + s5) 
+        (2*s2*p + 2*s3*q + s6) 
+        (s3*p + 3*s4*q + s7) 
+        (3*s1*p^2 + 2*s2*p*q + s2*q^2 + 2*s5*p + s6*q + s8) 
+        (s2*p^2 + 2*s3*p*q + 3*s4*q^2 + s6*p + 2*s7*q + s9) 
+        0 
+        (0,0)
