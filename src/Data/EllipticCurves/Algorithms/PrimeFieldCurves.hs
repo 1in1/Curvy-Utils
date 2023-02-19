@@ -1,14 +1,18 @@
-module Algorithms.PrimeFieldCurves (
+module Data.EllipticCurves.Algorithms.PrimeFieldCurves (
       curvePointsOnFp
     , singularities
     ) where
 
 import Data.Proxy
+import Data.Ratio
 import GHC.TypeLits
+import Numeric.AD
+import Numeric.AD.Internal.Forward
+import Numeric.AD.Internal.Tower
 
-import PreliminaryNumberTheory
-import EllipticCurves
-import Algorithms.General
+import Data.EllipticCurves
+import Data.EllipticCurves.Algorithms.General
+import Data.EllipticCurves.PreliminaryNumberTheory
 
 -- Which points exist on E(F_p)?
 curvePointsOnFp :: forall p . KnownNat p => Curve (PrimeFieldElem p) -> [ProjectivePoint (PrimeFieldElem p)]

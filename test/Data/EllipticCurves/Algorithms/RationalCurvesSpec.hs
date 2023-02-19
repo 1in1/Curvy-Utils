@@ -1,14 +1,14 @@
-module Algorithms.RationalCurvesSpec where
+module Data.EllipticCurves.Algorithms.RationalCurvesSpec where
 
-import GHC.TypeLits
 import Data.Proxy
+import Data.Ratio
+import GHC.TypeLits
 import Test.Hspec
 import Test.QuickCheck
-import Data.Ratio
 
-import PreliminaryNumberTheory
-import EllipticCurves
-import Algorithms.RationalCurves
+import Data.EllipticCurves
+import Data.EllipticCurves.Algorithms.RationalCurves
+import Data.EllipticCurves.PreliminaryNumberTheory
 
 curve = Curve 0 0 0 (-43) 166 :: Curve Rational
 p = Planar 3 8 :: ProjectivePoint Rational

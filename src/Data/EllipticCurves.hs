@@ -1,4 +1,4 @@
-module EllipticCurves (
+module Data.EllipticCurves (
       Curve (..)
     , ProjectivePoint (..)
     , homogenizeCoords
@@ -16,7 +16,7 @@ import Control.Exception
 import Data.List
 import Data.Ratio
 
-import PreliminaryNumberTheory
+import Data.EllipticCurves.PreliminaryNumberTheory
 
 -- Define the structure of an elliptic curve. Any such curve can be given in Weierstrass form
 

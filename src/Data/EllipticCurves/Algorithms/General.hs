@@ -1,4 +1,4 @@
-module Algorithms.General (
+module Data.EllipticCurves.Algorithms.General (
       isomorphismBetween
     , substitute
     , quotientCurve
@@ -18,8 +18,8 @@ import Data.Ratio
 import Data.Tuple
 import GHC.TypeLits
 
-import PreliminaryNumberTheory
-import EllipticCurves
+import Data.EllipticCurves
+import Data.EllipticCurves.PreliminaryNumberTheory
 
 -- Are two curves isomorphic to one another over k?
 -- If so, deduce a  substitution of the form
@@ -75,7 +75,7 @@ substitute (Curve a1 a3 a2 a4 a6) u r s t
 -- Given a curve and a finite _group_ of points on the curve, construct
 -- a curve isomorphic to the image under quotient by this finite group
 -- Algorithm of Velu - c.f. Velu, Isogenies between Elliptic Curves
-quotientCurve :: (Eq k, Fractional k) => Curve k -> [ProjectivePoint k] -> Curve k
+quotientCurve :: (Show k, Eq k, Fractional k) => Curve k -> [ProjectivePoint k] -> Curve k
 quotientCurve (Curve a1 a3 a2 a4 a6) f = quot where
     f2 = filter (/= Infinity) $ filter ((== Infinity) . ellipticNMult (Curve a1 a3 a2 a4 a6) 2) f
     r [] r' = r'

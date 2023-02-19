@@ -1,4 +1,4 @@
-module PreliminaryNumberTheorySpec where
+module Data.EllipticCurves.PreliminaryNumberTheorySpec where
 
 import Control.Arrow
 import Control.Lens
@@ -10,7 +10,7 @@ import Test.Hspec
 import Test.QuickCheck
 import qualified Data.Set as Set
 
-import PreliminaryNumberTheory
+import Data.EllipticCurves.PreliminaryNumberTheory
 
 quadraticFromRoots :: Rational -> Rational -> (Rational, Rational)
 quadraticFromRoots a b = (-(a+b), a*b)

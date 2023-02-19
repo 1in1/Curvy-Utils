@@ -1,11 +1,11 @@
-module Algorithms.PrimeFieldCurvesSpec where
+module Data.EllipticCurves.Algorithms.PrimeFieldCurvesSpec where
 
 import Test.Hspec
 import Test.QuickCheck
 
-import PreliminaryNumberTheory
-import EllipticCurves
-import Algorithms.PrimeFieldCurves
+import Data.EllipticCurves
+import Data.EllipticCurves.Algorithms.PrimeFieldCurves
+import Data.EllipticCurves.PreliminaryNumberTheory
 
 spec :: Spec
 spec = do

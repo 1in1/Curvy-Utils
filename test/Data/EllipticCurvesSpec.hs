@@ -1,10 +1,10 @@
-module EllipticCurvesSpec where
+module Data.EllipticCurvesSpec where
 
+import Data.Ratio
 import Test.Hspec
 import Test.QuickCheck
-import Data.Ratio
 
-import EllipticCurves
+import Data.EllipticCurves
 
 curve = Curve 0 0 0 (-43) 166 :: Curve Rational
 p = Planar 3 8 :: ProjectivePoint Rational

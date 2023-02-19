@@ -1,4 +1,4 @@
-module PreliminaryNumberTheory (
+module Data.EllipticCurves.PreliminaryNumberTheory (
       primesUpTo
     , primeFactors
     , isSquareRational

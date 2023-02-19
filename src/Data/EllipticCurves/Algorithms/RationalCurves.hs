@@ -1,4 +1,4 @@
-module Algorithms.RationalCurves (
+module Data.EllipticCurves.Algorithms.RationalCurves (
       isRationalTorsion
     , lutzNagelRationalTorsion
     , rational2Torsion
@@ -14,8 +14,8 @@ import Data.Proxy
 import Data.Ratio
 import GHC.TypeLits
 
-import PreliminaryNumberTheory
-import EllipticCurves
+import Data.EllipticCurves
+import Data.EllipticCurves.PreliminaryNumberTheory
 
 -- We then need to confirm that these points are torsion. By Mazur, it is sufficient to check up to 12P
 -- (we need not check 11 but we may as well compute it anyway)
