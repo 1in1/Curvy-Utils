@@ -24,13 +24,13 @@ curvePointsOnFp curve = Infinity:filter (curveContainsPoint curve) (Planar <$> l
 countCurvePointsOverExtension :: forall p . KnownNat p => Curve (PrimeFieldElem p) -> [Integer]
 countCurvePointsOverExtension curve = curvePointCounts where
     q = toRational $ natVal (Proxy :: Proxy p) :: Rational
-    q' = auto q :: AD s (Numeric.AD.Internal.Tower.Tower Rational)
+    q' = auto q :: AD s (Tower Rational)
     n = toRational $ length $ curvePointsOnFp curve :: Rational
-    a = q + 1 - n -- :: AD s (Numeric.AD.Internal.Tower.Tower Rational)
-    a' = auto a :: AD s (Numeric.AD.Internal.Tower.Tower Rational)
+    a = q + 1 - n :: Rational
+    a' = auto a :: AD s (Tower Rational)
 
     -- Note this is exp(f(t)), for f(t) = n1 t + n2/2 t^2 + n3/3 t^3 + ...
-    zeta :: AD s (Numeric.AD.Internal.Tower.Tower Rational) -> AD s (Numeric.AD.Internal.Tower.Tower Rational)
+    zeta :: AD s (Tower Rational) -> AD s (Tower Rational)
     zeta t = (1 - a'*t + q'*t^i2) / ((1 - t) *(1 - q'*t))
 
     -- The derivatives of the zeta function will be:
