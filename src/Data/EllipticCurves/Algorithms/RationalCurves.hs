@@ -7,12 +7,12 @@ module Data.EllipticCurves.Algorithms.RationalCurves (
     ) where
 
 import Control.Applicative
-import Control.Exception
-import Data.List
+import Control.Arrow
+import Data.List (nub)
 import Data.Maybe
-import Data.Proxy
 import Data.Ratio
-import GHC.TypeLits
+import GHC.TypeLits ()
+import Math.NumberTheory.Primes
 
 import Data.EllipticCurves
 import Data.EllipticCurves.PreliminaryNumberTheory
@@ -27,10 +27,12 @@ lutzNagelRationalTorsion :: Curve Rational -> [ProjectivePoint Rational]
 lutzNagelRationalTorsion (Curve 0 0 a2 a4 a6) 
     | all ((== 1) . denominator) [a2, a4, a6] = Infinity:rationalPlanarTorsion where
         disc = abs $ numerator $ weierstrassDiscriminant (Curve 0 0 a2 a4 a6)
-        factorsOfDisc = filter ((== 0) . mod disc . (^2)) [1..disc]
-        possibleYValues = [0] ++ factorsOfDisc ++ map negate factorsOfDisc
-       
-        xValuesFromY y = map toRational $ rationalCubicRoots a2 a4 (a6 - y^2)
+        twiceFactorsOfDisc = combineFactors $
+            map (second (`div` 2)) $
+            factorise disc
+        possibleYValues = 0:([id, negate] <*> twiceFactorsOfDisc)
+
+        xValuesFromY y = rationalCubicRoots a2 a4 (a6 - y^i2)
         rationalPlanarTorsion = 
             filter (isRationalTorsion (Curve 0 0 a2 a4 a6)) $
             filter (curveContainsPoint (Curve 0 0 a2 a4 a6)) $
@@ -44,7 +46,8 @@ rational2Torsion (Curve 0 a3 a2 a4 a6) = Infinity:planarPoints where
     y0 = -a3/2
     -- Search for x solving the elliptic at this point
     -- If we knew that we had integer coords, this would be significantly easier
-    planarPoints = map (`Planar` y0) $ nub $ rationalCubicRoots a2 a4 (a6 - a3 - y0^2)
+    planarPoints = map (`Planar` y0) $ nub $ rationalCubicRoots a2 a4 (a6 - a3 - y0^i2)
+rational2Torsion _ = undefined
 
 -- Given a curve E : y^2 = x^3 + ax^2 + bx, consider the homomorphism
 -- alpha_E : E(Q) -> Q* / (Q*)^2
@@ -80,14 +83,18 @@ rankOfImageOfAlpha (Curve 0 0 a b 0) | all ((== 1) . denominator) [a, b] = r whe
         | otherwise = imageElements xs (certainIn' xIsValid) (certainOut' xIsValid) where
             xIsValid = existsIntegerSolution x (numerator a) (round (b/ toRational x))
             certainIn' (Just valid) = if valid then nub (x:(certainIn ++ map (*x) certainIn)) else certainIn
+            certainIn' Nothing = undefined
             certainOut' (Just valid) = if valid then nub (certainOut ++ map (*x) certainOut) else nub (x:certainOut)
+            certainOut' Nothing = undefined
 
     imageElts = imageElements elementsToCheck [imagePointFromOrigin] []
-    r = round . logBase 2 . fromIntegral . length <$> imageElts
+    r = (round :: Double -> Integer) . logBase 2 . fromIntegral . length <$> imageElts
+rankOfImageOfAlpha _ = undefined
 
 -- Given a curve E : y^2 = x^3 + ax^2 + bx, we define a dual curve E' : y^2 = x^3 - 2ax^2 + (a^2 - 4b)x
 -- Considering the homs alpha_E, alpha_E', we may deduce the rank of the curve
 rationalRank :: Curve Rational -> Maybe Integer
 rationalRank (Curve 0 0 a b 0) | all ((== 1) . denominator) [a, b] = subtract 2 <$> liftA2 (+) r1 r2 where
     r1 = rankOfImageOfAlpha (Curve 0 0 a b 0)
-    r2 = rankOfImageOfAlpha (Curve 0 0 (-2*a) (a^2 - 4*b) 0)
+    r2 = rankOfImageOfAlpha (Curve 0 0 (-2*a) (a^i2 - 4*b) 0)
+rationalRank _ = undefined

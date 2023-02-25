@@ -1,19 +1,9 @@
-module Data.EllipticCurves.Algorithms.RationalCurvesSpec where
+module Data.EllipticCurves.Algorithms.RationalCurvesSpec (spec) where
 
-import Data.Proxy
-import Data.Ratio
-import GHC.TypeLits
 import Test.Hspec
-import Test.QuickCheck
 
 import Data.EllipticCurves
 import Data.EllipticCurves.Algorithms.RationalCurves
-import Data.EllipticCurves.PreliminaryNumberTheory
-
-curve = Curve 0 0 0 (-43) 166 :: Curve Rational
-p = Planar 3 8 :: ProjectivePoint Rational
-curve2 = Curve 1 1 (-1) (-3) 3 :: Curve Rational
-p2 = Planar 1 0 :: ProjectivePoint Rational
 
 spec :: Spec
 spec = do
@@ -66,3 +56,7 @@ spec = do
         -- Solution should be 0
         it "correctly deduces rank of a p-curve: p=41" $ do
             rationalRank (Curve 0 0 0 41 0) `shouldBe` Nothing
+
+    where
+    curve = Curve 0 0 0 (-43) 166 :: Curve Rational
+    p = Planar 3 8 :: ProjectivePoint Rational

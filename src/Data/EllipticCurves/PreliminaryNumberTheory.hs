@@ -1,5 +1,7 @@
 module Data.EllipticCurves.PreliminaryNumberTheory (
-      primesUpTo
+      i2, i3, i4, i6, i8
+    , combineFactors
+    , primesUpTo
     , primeFactors
     , isSquareRational
     , isSquareModN
@@ -16,11 +18,9 @@ import Control.Arrow
 import Control.Exception
 import Control.Lens
 import Control.Monad
-import Data.Complex
-import Data.List
+import Data.List (find, nub, sortOn, (\\))
 import Data.Map (Map)
 import Data.Maybe
-import Data.Ord
 import Data.Proxy
 import Data.Ratio
 import GHC.TypeLits
@@ -28,15 +28,22 @@ import Math.NumberTheory.Primes
 import Math.NumberTheory.Roots
 import qualified Data.Map as Map
 
+i2, i3, i4, i6, i8 :: Integer
+i2 = 2; i3 = 3; i4 = 4; i6 = 6; i8 = 8
+
+combineFactors :: [(Prime Integer, Word)] -> [Integer]
+combineFactors [] = [1]
+combineFactors ((p,n):xs) = (take (1 + fromEnum n) . iterate (* unPrime p)) =<< combineFactors xs
+
 -- Prime number sieve
 sieve :: (Ord a, Num a) => [a] -> [a]
-sieve xs = sieve' xs Map.empty where
-    sieve' [] table = []
-    sieve' (x:xs) table =
+sieve = sieve' Map.empty where
+    sieve' _ [] = []
+    sieve' table (x:xs) =
         case Map.lookup x table of
-            Nothing -> x : sieve' xs (Map.insert (x*x) [x] table)
-            Just facts -> sieve' xs (foldl reinsert (Map.delete x table) facts) where
-                reinsert table prime = Map.insertWith (++) (x+prime) [prime] table
+            Nothing -> x : sieve' (Map.insert (x*x) [x] table) xs
+            Just facts -> sieve' (foldl (flip reinsert) (Map.delete x table) facts) xs where
+                reinsert prime = Map.insertWith (++) (x+prime) [prime]
 
 primesUpTo :: Integer -> [Integer]
 primesUpTo n = assert (n > 0) $ sieve [2..n]
@@ -50,7 +57,7 @@ isSquareRational :: Rational -> Bool
 isSquareRational = (&&) <$> isSquare . numerator <*> isSquare . denominator
 
 isSquareModN :: Integer -> Integer -> Bool
-isSquareModN p x = mod x p `elem` [(x^2) `mod` p | x <- [0..(p-1)]]
+isSquareModN p x = mod x p `elem` [(z^i2) `mod` p | z <- [0..(p-1)]]
 
 -- Find a square root for a rational, if this root is rational
 -- The positive root is returned
@@ -65,7 +72,7 @@ cubeRootRational = liftA2 (%) <$> exactCubeRoot . numerator <*> exactCubeRoot . 
 rationalQuadraticRoots :: Rational -> Rational -> [Rational]
 rationalQuadraticRoots a 0 = [0, -a]
 rationalQuadraticRoots a b = maybePairOfRoots disc where
-    disc = squareRootRational $ a^2 - 4*b
+    disc = squareRootRational $ a^i2 - 4*b
     maybePairOfRoots = maybe [] (flip map [1, -1] . ((subtract (a/2) .) . (*) . (/2)))
 
 -- Find the rational roots of the monic cubic x^3 + ax^2 + bx + c
@@ -100,7 +107,7 @@ rationalCubicRoots a b c = roots where
         takeWhile ((<= lagrangianLimit) . abs . (1 %)) 
         possibleDenominators
 
-    rationalRoot = find ((== 0) . (\x -> x^3 + a*x^2 + b*x + c)) possibleFractionsWithinLimit
+    rationalRoot = find ((== 0) . (\x -> x^i3 + a*x^i2 + b*x + c)) possibleFractionsWithinLimit
     roots = maybe [] (\x -> x:rationalQuadraticRoots (a + x) (b + (a + x)*x)) rationalRoot
 
 -- Does there exist a solution in integers to w^2 = au^4 + bu^2 v^2 + cv^4,
@@ -113,26 +120,26 @@ existsIntegerSolution a b c
     | (any contradictionByConsiderationModP . primesUpTo . foldl lcm 1 . filter (/= 0) . map abs) [a, b, c] = Just False
     | existsBruteForceSolution 1000 = Just True
     | otherwise = Nothing where -- For now
-        eval (u, v) = a*(u^4) + b*(u^2)*(v^2) + c*(v^4)
+        eval (u, v) = a*(u^i4) + b*(u^i2)*(v^i2) + c*(v^i4)
 
         -- We cannot solve over R, let alone Z, if the LHS is positive but the RHS is negative
         contradictionByParity = all (<0) [a, b, c] || 
-            all (<0) [a, -(4*a*c - (b^2))] ||
-            all (<0) [c, -(4*c*a - (b^2))]
+            all (<0) [a, -(4*a*c - (b^i2))] ||
+            all (<0) [c, -(4*c*a - (b^i2))]
 
         -- Assume that u, v \in Z are coprime (else pull thier gcd into w), and consider the reduced equation at p -
         -- we may be able to establish a contradiction
         -- We can definitely make this work better...
         contradictionByConsiderationModP p = null solutionsModuloP where
-            squaresModP = (nub . map ((`mod` p) . (^2))) [0..(p-1)]
+            squaresModP = (nub . map ((`mod` p) . (^i2))) [0..(p-1)]
             -- There are certain scenarios where we can rule out pairs (u,v) _before_ we pass to the reduced polynomial
             -- In particular, if p|u, (resp. p|v), does this force p|v (resp. p|u)?
             -- This is the case in the following specific scenario
             uFilterOut 
-                | (a `mod` p) == 0 && (a `mod` (p^2)) /= 0 = [(u, 0) | u <- [1..(p-1)]] -- p|v => p|u
+                | (a `mod` p) == 0 && (a `mod` (p^i2)) /= 0 = [(u, 0) | u <- [1..(p-1)]] -- p|v => p|u
                 | otherwise = []
             vFilterOut
-                | (c `mod` p) == 0 && (c `mod` (p^2)) /= 0 = [(0, v) | v <- [1..(p-1)]] -- p|u => p|v
+                | (c `mod` p) == 0 && (c `mod` (p^i2)) /= 0 = [(0, v) | v <- [1..(p-1)]] -- p|u => p|v
                 | otherwise = []
             filterOut = (0,0):(uFilterOut ++ vFilterOut)
 

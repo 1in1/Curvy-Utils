@@ -34,7 +34,11 @@ ghc-options:
 
 library:
   source-dirs: src
-  default-extensions: ScopedTypeVariables, KindSignatures, DataKinds
+  default-extensions: 
+    - DataKinds
+    - KindSignatures
+    - NoFieldSelectors
+    - ScopedTypeVariables
 
 tests:
   curvy-utils-test:

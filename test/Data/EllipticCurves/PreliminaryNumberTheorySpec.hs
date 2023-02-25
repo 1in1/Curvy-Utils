@@ -1,10 +1,9 @@
-module Data.EllipticCurves.PreliminaryNumberTheorySpec where
+module Data.EllipticCurves.PreliminaryNumberTheorySpec (spec) where
 
 import Control.Arrow
 import Control.Lens
 import Data.Maybe
 import Data.Ratio
-import Data.Set (Set)
 import Math.NumberTheory.Primes
 import Test.Hspec
 import Test.QuickCheck
@@ -20,15 +19,12 @@ cubicFromRoots a b c = (-(a+b+c), a*b + a*c+ b*c, -(a*b*c))
 uncurry3 :: (a -> b -> c -> d) -> (a, b, c) -> d
 uncurry3 f (a, b, c) = f a b c
 
-genPrime = chooseAny `suchThat` (isJust . isPrime) :: Gen Integer
+genPrime :: Gen Integer
+genPrime = chooseAny `suchThat` (isJust . isPrime)
 genRationalBoundedArguments :: Integer -> Gen Rational
 genRationalBoundedArguments n = (%) <$>
     chooseInteger (-n, n) <*>
     suchThat (chooseInteger (-n, n)) (/=0) 
-genRationalPair :: Integer -> Gen (Rational, Rational)
-genRationalPair n = (,) <$>
-    genRationalBoundedArguments n <*>
-    genRationalBoundedArguments n
 genRationalTriple :: Integer -> Gen (Rational, Rational, Rational)
 genRationalTriple n = (,,) <$>
     genRationalBoundedArguments n <*>
@@ -39,17 +35,17 @@ spec :: Spec
 spec = do
     describe "PreliminaryNumberTheory.squareRootRational" $ do
         it "returns the correct square root" $ property $
-            (==) <$> squareRootRational . (^2) <*> Just . abs
+            (==) <$> squareRootRational . (^i2) <*> Just . abs
         it "returns Nothing for non-square rationals" $
             forAll ((,) <$> chooseAny `suchThat` (isJust . isPrime) <*> genRationalBoundedArguments 1000) $
-            isNothing . squareRootRational . uncurry (*) . ((% 1) *** (^2))
+            isNothing . squareRootRational . uncurry (*) . ((% 1) *** (^i2))
 
     describe "PreliminaryNumberTheory.cubeRootRational" $ do
         it "returns the correct cube root" $ property $
-            (==) <$> cubeRootRational . (^3) <*> Just
+            (==) <$> cubeRootRational . (^i3) <*> Just
         it "returns Nothing for non-cube rationals" $
             forAll ((,) <$> genPrime <*> genRationalBoundedArguments 1000) $
-            isNothing . cubeRootRational . uncurry (*) . ((% 1) *** (^3))
+            isNothing . cubeRootRational . uncurry (*) . ((% 1) *** (^i3))
 
     describe "PreliminaryNumberTheory.primesUpTo" $ do
         it "returns prime numbers up to 13" $ do
@@ -59,7 +55,7 @@ spec = do
 
     describe "PreliminaryNumberTheory.isSquareRational" $ do
         it "correctly identifies square" $ property $
-            (== True) . isSquareRational . (^2)
+            (== True) . isSquareRational . (^i2)
         it "correctly identifies non-square" $ do
             isSquareRational ((-169) % 4) `shouldBe` False
         it "does not claim 2n and n are both square (unless 0)" $
