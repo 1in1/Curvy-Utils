@@ -19,6 +19,7 @@ dependencies:
 - integer-roots
 - lens
 - arithmoi
+- ad
 
 ghc-options:
 - -Wall
