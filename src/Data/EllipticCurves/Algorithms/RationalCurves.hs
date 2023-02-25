@@ -80,12 +80,16 @@ rankOfImageOfAlpha (Curve 0 0 a b 0) | all ((== 1) . denominator) [a, b] = r whe
         | x `elem` certainIn = imageElements xs certainIn certainOut
         | x `elem` certainOut = imageElements xs certainIn certainOut
         | isNothing xIsValid = Nothing
-        | otherwise = imageElements xs (certainIn' xIsValid) (certainOut' xIsValid) where
+        | otherwise = imageElements xs certainIn' certainOut' where
             xIsValid = existsIntegerSolution x (numerator a) (round (b/ toRational x))
-            certainIn' (Just valid) = if valid then nub (x:(certainIn ++ map (*x) certainIn)) else certainIn
-            certainIn' Nothing = undefined
-            certainOut' (Just valid) = if valid then nub (certainOut ++ map (*x) certainOut) else nub (x:certainOut)
-            certainOut' Nothing = undefined
+            certainIn' = case xIsValid of
+                Just True  -> nub (x:(certainIn ++ map (*x) certainIn))
+                Just False -> certainIn
+                Nothing    -> undefined
+            certainOut' = case xIsValid of 
+                Just True  -> nub (certainOut ++ map (*x) certainOut) 
+                Just False -> nub (x:certainOut)
+                Nothing    -> undefined
 
     imageElts = imageElements elementsToCheck [imagePointFromOrigin] []
     r = (round :: Double -> Integer) . logBase 2 . fromIntegral . length <$> imageElts

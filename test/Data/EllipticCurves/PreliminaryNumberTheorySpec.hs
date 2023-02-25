@@ -37,14 +37,14 @@ spec = do
         it "returns the correct square root" $ property $
             (==) <$> squareRootRational . (^i2) <*> Just . abs
         it "returns Nothing for non-square rationals" $
-            forAll ((,) <$> chooseAny `suchThat` (isJust . isPrime) <*> genRationalBoundedArguments 1000) $
+            forAll ((,) <$> genPrime <*> (genRationalBoundedArguments 10000 `suchThat` (/=0))) $
             isNothing . squareRootRational . uncurry (*) . ((% 1) *** (^i2))
 
     describe "PreliminaryNumberTheory.cubeRootRational" $ do
         it "returns the correct cube root" $ property $
             (==) <$> cubeRootRational . (^i3) <*> Just
         it "returns Nothing for non-cube rationals" $
-            forAll ((,) <$> genPrime <*> genRationalBoundedArguments 1000) $
+            forAll ((,) <$> genPrime <*> (genRationalBoundedArguments 10000 `suchThat` (/=0))) $
             isNothing . cubeRootRational . uncurry (*) . ((% 1) *** (^i3))
 
     describe "PreliminaryNumberTheory.primesUpTo" $ do
