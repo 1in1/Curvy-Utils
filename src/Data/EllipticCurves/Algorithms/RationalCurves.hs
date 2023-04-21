@@ -27,7 +27,8 @@ lutzNagelRationalTorsion :: Curve Rational -> [ProjectivePoint Rational]
 lutzNagelRationalTorsion (Curve 0 0 a2 a4 a6) 
     | all ((== 1) . denominator) [a2, a4, a6] = Infinity:rationalPlanarTorsion where
         disc = abs $ numerator $ weierstrassDiscriminant (Curve 0 0 a2 a4 a6)
-        twiceFactorsOfDisc = combineFactors $
+        twiceFactorsOfDisc = 
+            combineFactors $
             map (second (`div` 2)) $
             factorise disc
         possibleYValues = 0:([id, negate] <*> twiceFactorsOfDisc)

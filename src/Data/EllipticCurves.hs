@@ -1,7 +1,8 @@
 module Data.EllipticCurves (
       Curve (..)
     , ProjectivePoint (..)
-    , CurvePoint (..)
+    , CurvePoint
+    , curvePoint
     , homogenizeCoords
     , dehomogenizeCoords
     , planarPoint
@@ -23,6 +24,10 @@ data Curve k = Curve { a1 :: k, a3 :: k, a2 :: k, a4 :: k, a6 :: k } deriving (S
 data ProjectivePoint k = Planar k k | Infinity deriving (Show, Eq)
 -- A point with its given curve
 data CurvePoint k = CurvePoint (Curve k) (ProjectivePoint k)
+-- Smart constructor for points on a curve
+curvePoint :: (Eq k, Num k) => Curve k -> ProjectivePoint k -> Maybe (CurvePoint k)
+curvePoint c p | curveContainsPoint c p = Just (CurvePoint c p)
+               | otherwise = Nothing
 
 -- Go between homogeneous coordinates and planar ones
 homogenizeCoords :: (Num k) => ProjectivePoint k -> (k, k, k)
