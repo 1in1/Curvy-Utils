@@ -11,9 +11,9 @@ spec = do
         it "identifies a rational torsion point" $ do
             isRationalTorsion curve p `shouldBe` True
 
-    describe "Algorithms.lutzNagelRationalTorsion" $ do
+    describe "Algorithms.lutzNagellRationalTorsion" $ do
         it "identifies all rational torsion points" $ do
-            lutzNagelRationalTorsion curve `shouldMatchList` [
+            lutzNagellRationalTorsion curve `shouldMatchList` [
                 Infinity, 
                 Planar 3 8,
                 Planar (-5) 16,

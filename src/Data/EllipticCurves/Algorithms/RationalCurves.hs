@@ -1,6 +1,6 @@
 module Data.EllipticCurves.Algorithms.RationalCurves (
       isRationalTorsion
-    , lutzNagelRationalTorsion
+    , lutzNagellRationalTorsion
     , rational2Torsion
     , rankOfImageOfAlpha
     , rationalRank
@@ -22,9 +22,10 @@ import Data.EllipticCurves.PreliminaryNumberTheory
 isRationalTorsion :: Curve Rational -> ProjectivePoint Rational -> Bool
 isRationalTorsion curve = (Infinity `elem`) . scanl1 (ellipticAddition curve) . replicate 11
 
+-- Applying Lutz-Nagell, we have a finite number of y-values to check
 -- Only defined for integer coefficients and a1 == a3 == 0
-lutzNagelRationalTorsion :: Curve Rational -> [ProjectivePoint Rational]
-lutzNagelRationalTorsion (Curve 0 0 a2 a4 a6) 
+lutzNagellRationalTorsion :: Curve Rational -> [ProjectivePoint Rational]
+lutzNagellRationalTorsion (Curve 0 0 a2 a4 a6) 
     | all ((== 1) . denominator) [a2, a4, a6] = Infinity:rationalPlanarTorsion where
         disc = abs $ numerator $ weierstrassDiscriminant (Curve 0 0 a2 a4 a6)
         twiceFactorsOfDisc = 
@@ -38,7 +39,7 @@ lutzNagelRationalTorsion (Curve 0 0 a2 a4 a6)
             filter (isRationalTorsion (Curve 0 0 a2 a4 a6)) $
             filter (curveContainsPoint (Curve 0 0 a2 a4 a6)) $
             concatMap ((map <$> flip Planar <*> xValuesFromY) . toRational) possibleYValues
-lutzNagelRationalTorsion _ = undefined
+lutzNagellRationalTorsion _ = undefined
 
 -- For any curve over Q with a1 = 0, there is a unique value of y for planar 2-torsion points
 -- This implies there are at most 4 points of order dividing 2, including infinity
