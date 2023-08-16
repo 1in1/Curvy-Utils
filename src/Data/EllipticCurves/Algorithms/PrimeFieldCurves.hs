@@ -2,6 +2,7 @@ module Data.EllipticCurves.Algorithms.PrimeFieldCurves (
       curvePointsOnFp
     , countCurvePointsOverExtension
     , singularities
+    , fromRationalCurve
     ) where
 
 import Data.Proxy
@@ -53,7 +54,16 @@ countCurvePointsOverExtension curve = curvePointCounts where
     factorials = scanl1 (*) [1..]
     curvePointCounts = map numerator $ zipWith (/) (map fDerivs [1..]) (1:factorials)
 
-
 -- Identify singular points on the curve
 singularities :: forall p . KnownNat p => Curve (PrimeFieldElem p) -> [ProjectivePoint (PrimeFieldElem p)]
 singularities = filter <$> isSingular <*> curvePointsOnFp
+
+-- Fallible! 
+fromRationalCurve :: forall p . KnownNat p => Curve Rational -> Curve (PrimeFieldElem p)
+fromRationalCurve =
+    Curve <$>
+        fromRational . (.a1) <*> 
+        fromRational . (.a3) <*> 
+        fromRational . (.a2) <*> 
+        fromRational . (.a4) <*> 
+        fromRational . (.a6)
