@@ -30,6 +30,10 @@ genRationalTriple n = (,,) <$>
     genRationalBoundedArguments n <*>
     genRationalBoundedArguments n <*>
     genRationalBoundedArguments n
+genInertRational :: Integer -> Gen Rational
+genInertRational p = (%) <$>
+    (chooseAny `suchThat` ((/= 0) . (`mod` p))) <*>
+    (chooseAny `suchThat` ((/= 0) . (`mod` p)))
 
 spec :: Spec
 spec = do
@@ -62,11 +66,26 @@ spec = do
             forAll (genRationalBoundedArguments 1000 `suchThat` (/= 0))
             ((\ a -> not (isSquareRational a && isSquareRational ((2%1)*a))) :: Rational -> Bool)
 
+    describe "PreliminaryNumberTheory.pAdicValuation" $ do
+        it "correctly computes 2-adic valuations" $
+            forAll ((,) <$> chooseInteger (-100, 100) <*> genInertRational 2) $
+            (==) <$>
+            fst <*>
+            (pAdicValuation 2 . uncurry (*) . first (2^^))
+
     describe "PreliminaryNumberTheory.isSquareModN" $ do
         it "correctly identifies square" $ do
             isSquareModN 5 4 `shouldBe` True
         it "correctly identifies non-square" $ do
             isSquareModN 7 6 `shouldBe` False
+
+    describe "PreliminaryNumberTheory.isSquareModN'" $ do
+        it "correctly identifies square" $ do
+            isSquareModN' 5 4 `shouldBe` Just True
+        it "correctly identifies non-square" $ do
+            isSquareModN' 7 6 `shouldBe` Just False
+        it "returns Nothing for an illegal value" $ do
+            isSquareModN' 5 (1 % 5) `shouldBe` Nothing
 
     describe "PreliminaryNumberTheory.rationalQuadraticRoots" $ do
         it "returns both roots of a quadratic with rational roots" $ property $

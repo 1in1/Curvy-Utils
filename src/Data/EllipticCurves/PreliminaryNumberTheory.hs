@@ -3,8 +3,10 @@ module Data.EllipticCurves.PreliminaryNumberTheory (
     , combineFactors
     , primesUpTo
     , primeFactors
+    , pAdicValuation
     , isSquareRational
     , isSquareModN
+    , isSquareModN'
     , squareRootRational
     , cubeRootRational
     , rationalQuadraticRoots
@@ -53,11 +55,26 @@ primeFactors n | n == 0 = []
                | n < 0 = primeFactors (-n)
                | otherwise = filter ((== 0) . mod n) $ primesUpTo n
 
+-- TODO: Should perhaps be a Maybe, and throw Nothing on 0
+pAdicValuation :: Integer -> Rational -> Integer
+pAdicValuation p = (-) <$> orderOfPInteger . numerator <*> orderOfPInteger . denominator where
+    orderOfPInteger :: Integer -> Integer
+    orderOfPInteger = 
+        toInteger .
+        maybe 0 (fromEnum . snd) .
+        find ((== p) . unPrime . fst) .
+        factorise
+
 isSquareRational :: Rational -> Bool
 isSquareRational = (&&) <$> isSquare . numerator <*> isSquare . denominator
 
 isSquareModN :: Integer -> Integer -> Bool
 isSquareModN p x = mod x p `elem` [(z^i2) `mod` p | z <- [0..(p-1)]]
+
+isSquareModN' :: Integer -> Rational -> Maybe Bool
+isSquareModN' p = 
+    fmap (isSquareModN p) .
+    (liftA2 (*) <$> Just . numerator <*> modInv p . denominator)
 
 -- Find a square root for a rational, if this root is rational
 -- The positive root is returned

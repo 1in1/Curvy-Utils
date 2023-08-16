@@ -39,6 +39,7 @@ library:
     - KindSignatures
     - NoFieldSelectors
     - ScopedTypeVariables
+    - OverloadedRecordDot
 
 tests:
   curvy-utils-test:
