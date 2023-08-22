@@ -4,36 +4,12 @@ import Control.Arrow
 import Control.Lens
 import Data.Maybe
 import Data.Ratio
-import Math.NumberTheory.Primes
 import Test.Hspec
 import Test.QuickCheck
 import qualified Data.Set as Set
 
 import Data.EllipticCurves.PreliminaryNumberTheory
-
-quadraticFromRoots :: Rational -> Rational -> (Rational, Rational)
-quadraticFromRoots a b = (-(a+b), a*b)
-cubicFromRoots :: Rational -> Rational -> Rational -> (Rational, Rational, Rational)
-cubicFromRoots a b c = (-(a+b+c), a*b + a*c+ b*c, -(a*b*c))
-
-uncurry3 :: (a -> b -> c -> d) -> (a, b, c) -> d
-uncurry3 f (a, b, c) = f a b c
-
-genPrime :: Gen Integer
-genPrime = chooseAny `suchThat` (isJust . isPrime)
-genRationalBoundedArguments :: Integer -> Gen Rational
-genRationalBoundedArguments n = (%) <$>
-    chooseInteger (-n, n) <*>
-    suchThat (chooseInteger (-n, n)) (/=0) 
-genRationalTriple :: Integer -> Gen (Rational, Rational, Rational)
-genRationalTriple n = (,,) <$>
-    genRationalBoundedArguments n <*>
-    genRationalBoundedArguments n <*>
-    genRationalBoundedArguments n
-genInertRational :: Integer -> Gen Rational
-genInertRational p = (%) <$>
-    (chooseAny `suchThat` ((/= 0) . (`mod` p))) <*>
-    (chooseAny `suchThat` ((/= 0) . (`mod` p)))
+import Util
 
 spec :: Spec
 spec = do

@@ -9,8 +9,13 @@ module Data.EllipticCurves (
     , ellipticAddition
     , ellipticInverse
     , ellipticNMult
+    , b2, b4, b6, b8
+    , c4, c6
     , weierstrassDiscriminant
     , jInvariant
+    , ReductionType (..)
+    , BadReductionType (..)
+    , MultiplicativeReductionType (..)
     , curveContainsPoint
     ) where
 
@@ -67,22 +72,56 @@ ellipticInverse (Curve a1 a3 _ _ _) (Planar x y) = Planar x (-y - a1*x - a3)
 ellipticNMult :: (Eq k, Fractional k) => Curve k -> Int -> ProjectivePoint k -> ProjectivePoint k
 ellipticNMult curve n = foldl1 (ellipticAddition curve) . replicate n
 
+-- We expose the following derived values
+b2 :: (Num k) => Curve k -> k
+b2 (Curve a1 _  a2 _  _ ) = a1^i2 + 4*a2
+b4 :: (Num k) => Curve k -> k
+b4 (Curve a1 a3 _  a4 _ ) = 2*a4 + a1*a3
+b6 :: (Num k) => Curve k -> k
+b6 (Curve _  a3 _  _  a6) = a3^i2 + 4*a6
+b8 :: (Num k) => Curve k -> k
+b8 (Curve a1 a3 a2 a4 a6) = (a1^i2)*a6 + 4*a2*a6 - a1*a3*a4 + a2*(a3^i2) - a4^i2
+c4 :: (Num k) => Curve k -> k
+c4 curve = b2 curve^i2 - 24*b4 curve
+c6 :: (Num k) => Curve k -> k
+c6 curve = - b2'^i3 + 36*b2'*b4' - 216*b6' where
+    b2' = b2 curve
+    b4' = b4 curve
+    b6' = b6 curve
+
 discriminantAndJInvariant :: (Eq k, Fractional k) => Curve k -> (k, Maybe k)
-discriminantAndJInvariant (Curve a1 a3 a2 a4 a6) = (disc, j) where
-    b2 = a1^i2 + 4*a2
-    b4 = 2*a4 + a1*a3
-    b6 = a3^i2 + 4*a6
-    b8 = (a1^i2)*a6 + 4*a2*a6 - a1*a3*a4 + a2*(a3^i2) - a4^i2
-    c4 = b2^i2 - 24*b4
-    disc = -(b2^i2)*b8 - 8*b4^i3 - 27*b6^i2 + 9*b2*b4*b6
+discriminantAndJInvariant curve = (disc, j) where
+    disc = -(b2'^i2)*b8' - 8*b4'^i3 - 27*b6'^i2 + 9*b2'*b4'*b6' where
+        b2' = b2 curve
+        b4' = b4 curve
+        b6' = b6 curve
+        b8' = b8 curve
     j | disc == 0 = Nothing
-      | otherwise = Just $ (c4^i3)/disc
+      | otherwise = Just $ (c4 curve^i3)/disc
 
 weierstrassDiscriminant :: (Eq k, Fractional k) => Curve k -> k
 weierstrassDiscriminant = fst . discriminantAndJInvariant
 
 jInvariant :: (Eq k, Fractional k) => Curve k -> Maybe k
 jInvariant = snd . discriminantAndJInvariant
+
+-- Types of reductions, for curves over number fields being reduced to residue fields
+data ReductionType =
+    GoodReduction |
+    BadReduction BadReductionType
+    deriving (Eq, Show)
+-- Additive reduction is also known as unstable reduction
+--   It occurs when the non-singular group is the additive group of the residue field
+-- Multiplicative reduction is also known as stable reduction
+--   It occurs when the non-singular group is the multiplicative group of the residue field
+data BadReductionType =
+    AdditiveReduction |
+    MultiplicativeReduction MultiplicativeReductionType
+    deriving (Eq, Show)
+data MultiplicativeReductionType =
+    SplitMultiplicativeReduction |
+    NonSplitMultiplicativeReduction
+    deriving (Eq, Show)
 
 -- Given a ProjectivePoint, is it on the given Curve?
 curveContainsPoint :: (Eq k, Num k) => Curve k -> ProjectivePoint k -> Bool

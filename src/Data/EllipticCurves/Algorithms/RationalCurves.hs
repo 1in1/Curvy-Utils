@@ -4,17 +4,23 @@ module Data.EllipticCurves.Algorithms.RationalCurves (
     , rational2Torsion
     , rankOfImageOfAlpha
     , rationalRank
+    , minimalWeierstrassEquation
+    , RationalPrimeReduction (..)
+    , reductionType
     ) where
 
 import Control.Applicative
 import Control.Arrow
 import Data.List (nub)
 import Data.Maybe
+import Data.Proxy
 import Data.Ratio
-import GHC.TypeLits ()
+import GHC.TypeLits
 import Math.NumberTheory.Primes
 
 import Data.EllipticCurves
+import Data.EllipticCurves.Algorithms.General
+import Data.EllipticCurves.Algorithms.PrimeFieldCurves
 import Data.EllipticCurves.PreliminaryNumberTheory
 
 -- We then need to confirm that these points are torsion. By Mazur, it is sufficient to check up to 12P
@@ -104,3 +110,26 @@ rationalRank (Curve 0 0 a b 0) | all ((== 1) . denominator) [a, b] = subtract 2 
     r1 = rankOfImageOfAlpha (Curve 0 0 a b 0)
     r2 = rankOfImageOfAlpha (Curve 0 0 (-2*a) (a^i2 - 4*b) 0)
 rationalRank _ = undefined
+
+minimalWeierstrassEquation :: Integer -> Curve Rational -> Curve Rational
+minimalWeierstrassEquation p curve = substitute curve (toRational p^^i) 0 0 0 where
+    i = pAdicValuation p (weierstrassDiscriminant curve) `div` 12
+
+-- We implement checking the reduction type of a rational curve to a prime residue field
+newtype RationalPrimeReduction (n :: Nat) = RationalPrimeReduction ReductionType deriving (Show, Eq)
+
+reductionType :: forall p . KnownNat p => Curve Rational -> RationalPrimeReduction p
+reductionType curve
+    | not reductionIsSingular = RationalPrimeReduction GoodReduction
+    | reductionHasCusp        = RationalPrimeReduction $ BadReduction AdditiveReduction
+    | reductionIsSplitMultiplicative = RationalPrimeReduction $ BadReduction $ MultiplicativeReduction SplitMultiplicativeReduction
+    | otherwise = RationalPrimeReduction $ BadReduction $ MultiplicativeReduction NonSplitMultiplicativeReduction where
+    p = natVal (Proxy :: Proxy p)
+
+    reducedCurve = fromRationalCurve $ minimalWeierstrassEquation p curve :: Curve (PrimeFieldElem p)
+
+    reductionIsSingular = weierstrassDiscriminant reducedCurve == 0
+    reductionHasCusp = reductionIsSingular && (c4 reducedCurve == 0)
+    reductionIsSplitMultiplicative =
+        (reductionIsSingular && not reductionHasCusp) &&
+        fromMaybe False (isSquareModN' p (- c6 curve))

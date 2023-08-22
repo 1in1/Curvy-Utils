@@ -10,8 +10,8 @@ module Data.EllipticCurves.Algorithms.General (
 
 import Control.Exception
 import Control.Monad
-import Data.Maybe
 import Data.List (find, zip4, (\\))
+import Data.Maybe
 import Data.Tuple
 import GHC.TypeLits()
 
@@ -30,11 +30,10 @@ isomorphismBetween :: Curve Rational ->
                       Curve Rational -> 
                       Maybe (Rational, Rational, Rational, Rational)
 isomorphismBetween (Curve a1 a3 a2 a4 a6) (Curve a1' a3' a2' a4' a6') = iso where
-    b2 = a1^i2 + 4*a2;  b2' = a1'^i2 + 4*a2'
-    b4 = 2*a4 + a1*a3; b4' = 2*a4' + a1'*a3'
-    c4 = b2^i2 - 24*b4; c4' = b2'^i2 - 24*b4'
-    ratio | (c4 == 0) || (c4' == 0) = Nothing
-          | otherwise = Just (c4 / c4')
+    c4_  = c4 (Curve a1 a3 a2 a4 a6)
+    c4'_ = c4 (Curve a1' a3' a2' a4' a6')
+    ratio | (c4_ == 0) || (c4'_ == 0) = Nothing
+          | otherwise = Just (c4_ / c4'_)
 
     -- There are potentially two options for u from this; the positive and negative square root
     -- We work out both, and check if they give the correct substitution
