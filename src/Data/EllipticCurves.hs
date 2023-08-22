@@ -73,17 +73,12 @@ ellipticNMult :: (Eq k, Fractional k) => Curve k -> Int -> ProjectivePoint k -> 
 ellipticNMult curve n = foldl1 (ellipticAddition curve) . replicate n
 
 -- We expose the following derived values
-b2 :: (Num k) => Curve k -> k
+b2, b4, b6, b8, c4, c6 :: (Num k) => Curve k -> k
 b2 (Curve a1 _  a2 _  _ ) = a1^i2 + 4*a2
-b4 :: (Num k) => Curve k -> k
 b4 (Curve a1 a3 _  a4 _ ) = 2*a4 + a1*a3
-b6 :: (Num k) => Curve k -> k
 b6 (Curve _  a3 _  _  a6) = a3^i2 + 4*a6
-b8 :: (Num k) => Curve k -> k
 b8 (Curve a1 a3 a2 a4 a6) = (a1^i2)*a6 + 4*a2*a6 - a1*a3*a4 + a2*(a3^i2) - a4^i2
-c4 :: (Num k) => Curve k -> k
 c4 curve = b2 curve^i2 - 24*b4 curve
-c6 :: (Num k) => Curve k -> k
 c6 curve = - b2'^i3 + 36*b2'*b4' - 216*b6' where
     b2' = b2 curve
     b4' = b4 curve
